@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dmpotswat_Manual_English.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="dmpotswat-user-manual">DMPOTSWAT User Manual</h1>
+<p>Distributed Model Parameter Optimization Tool for the SWAT model, dmpotswat, is a tool for conducting multivariable and multisite calibration of the SWAT model with the distributed optimization procedure.</p>
+<h2 id="what-is-distributed-model-parameter-optimization">What is distributed model parameter optimization?</h2>
+<p>Distributed model parameter optimization conducts parameter optimization in a distributed way. There are generally two schemes for multisite
+calibration. One is simultaneous scheme which determines one optimal solution of parameter sets producing satisfactory calibration results for the whole
+watershed. The other scheme is sequential scheme which optimizes objective functions in a cascading way. The determined optimal solution by the simultaneous scheme assumes that the selected optimal set of parameter values fits the whole watersheds. By assuming only one optimal parameter sets, spatial variation of hydrologic responses to geographical conditions in the calibration procedure is not fully captured. Thus, the simultaneous scheme might be suitable for calibrating models of watersheds with less geographic heterogeneity. For watersheds with large area or higher geographical heterogeneity, the optimal solution for the whole watershed cannot fit all areas. The solution is only &quot;partially optimal&quot; for
+parts of the watershed instead of &quot;global optimal&quot; for the whole watershed. The scheme generating only one optimal solution for the whole watershed can be considered as &quot;lumped optimization&quot;, even though the parameter values are setup in a distributed way. In order to fully capture the spatial variations of hydrologic processes, the modification of parameter values for multiple gauging stations need not to be identical but should be based on conditions of sub-watersheds as in the sequential scheme. The distributed model parameter optimization mode initialize parameters for each subarea group defined by users, and optimize them individually.</p>
+<h2 id="get-started">Get started</h2>
+<p>This program is compiled into one executable file, and can be started by double click it. No installation is needed.</p>
+<p>After started, the interface looks like this:</p>
+<p><img src="image/Dmpotswat_Manual_Chinese/1660545983190.png" alt="1660545983190"></p>
+<p>The interface contains 10 labels:</p>
+<ul>
+<li>Projects: Under this lable, users can create, save, or load existing projects.</li>
+<li>SWAT Model：Under this label, details for the SWAT model simulation can be specified. These details includes start and ending dates, warm up period, outlet to be calibrated, variables at each outlet to be calibrated, objective functions used for each target, and their weights if multiple variable and outlet are to be included in one calibration.</li>
+<li>Evaluate Default Model: Under this label, users can calculate values of objective functions and evaluate the model with default parameter values.</li>
+<li>Parameter Selection: Under this label, users can determine target parameters to be included in the calibration process.</li>
+<li>Sensitivity analysis：Under this label, users can conduct sensitivity analysis.</li>
+<li>Calibration: Under this label, users can specify details and conduct calibration.</li>
+<li>Calibration Plotting: Under this label, users can plot the time series plot and flow duration curve plots for any specified run no during the calibration. This label is designed to facilitate the selection of best run no.</li>
+<li>Select Best Run: Under this label, users can select the best run no, and apply the parameters of this run to the txtinout and get calibrated model. Users can also get validated model by setting up the validation period under the SWAT model label.</li>
+<li>Uncertainty: Under this label, users can generate uncertainty maps.</li>
+<li>About: Description of the software.</li>
+</ul>
+<ol>
+<li>Projects Label：</li>
+</ol>
+<p>Users can create a new project by clicking the &quot;Create New Project&quot; button. Users need to select a folder where the project will stored. Then, a file with suffix of &quot;.dmp&quot; will be created,</p>
+<p><img src="image/Dmpotswat_Manual_Chinese/1660547589741.png" alt="1660547589741"></p>
+<p>as well as several folders shown in the figure below:
+<img src="image/Dmpotswat_Manual_Chinese/1660547663647.png" alt="1660547663647"></p>
+<ul>
+<li>observeddata: folder storing files containing time series of observed values for selected variables at corresponding outlet.</li>
+<li>outfiles_dds: folder containing files generated during the DDS procedure, including values of objective function, parameters, and selection of parameters at each run no.</li>
+<li>outfiles_sa: folder containing files generated during the process of sensitivity analysis</li>
+<li>reachshapefile: folders containing the reach.shp file generated by ArcSWAT</li>
+<li>txtinout: folders containing files for the original TxtInOut folder for the model</li>
+<li>workingdir: folders containing a copy of the txtinout folder</li>
+</ul>
+<p>After the project setup is done, corresponding information will be displayed in the text box within the label:</p>
+<p><img src="image/Dmpotswat_Manual_Chinese/1660551270652.png" alt="1660551270652"></p>
+<p>After creating the project, users need to copy all files in the TxtInOut folder into the txtinout folder under the project folder. In addition, the reach.shp file need also be copied to the reachshapefile folder under the project folder. Then, check the corresponding checkbox. The software will make some basic inspection to determine whether these folders are properly prepared. After copying these files, users can click the &quot;Save Project&quot; button to save the project, and enable the SWAT Model label.</p>
+<p>If users have an existing project, they can click the &quot;Open Existing Project&quot; button to load it.</p>
+<ol start="2">
+<li>SWAT Model Label</li>
+</ol>
+<p>This label will be enabled after the project is created and saved.</p>
+<p>Under this label, the parameters to be specified includes: Simulation start date, End date, Warmup period, Time frequency (print frequency of the SWAT model), and Total No of outlet_variable. The Total No of outlet_variable refers to the total number of variables at all outlets. For example, there are two outlets to be calibrated. Two variables (say streamflow and sediment) need to be calibrated at the first outlet, and one variable (say streamflow) will be calibrated at the second outlet. Then, the Total No of outlet_variable should be set as 3. Maximum number of outlet_variable allowed by this software is 15.</p>
+<p>Then, users need to define the specified outlet variables by clicking the &quot;Define Details&quot; button. Then, a table showing the available variables, options for objective functions, and their weights will be displayed. Users need to enter the outlet No available in the watershed, the variables at this outlet, weights of this outlet_variable, objective function to be calculated, and the weights of each objective function. Weights can be exact or fuzzy weights. The fuzzy weights refers to relative large or small numbers. The software will use standardized weights calculated as weights/(maximum weights - minimum weights) as the actual weights during the calibration.
+After finished setting up the details, click the &quot;Save Details&quot; button to save the setting.</p>
+<p>After setting up the details, users need to copy files containing observed time series for each outlet_variable into the observeddata folder under the project folder. Then, users need to check the checkbox after the &quot;Clear Table&quot; button. The software will check whether observed data are all preapared properlly. If not, error message will be displayed showing the problem.</p>
+<p><img src="image/Dmpotswat_Manual_Chinese/1660551519647.png" alt="1660551519647"></p>
+<p>After details of the SWAT model is properly setup, other labels will be activated.</p>
+<ol start="3">
+<li>Evaluate Default Model Label:</li>
+</ol>
+<p>Under this label, users can calculate the values of selected objective functions for each outlet_variale will be calculated by running the model with default parameters. This label is designed to provide users with a glance of model performance with default parameters. During the running process, the software will first copy files in the txtinout folder into the workingdir. Then, call the SWAT.exe program. After the program finished running, the software will calculate the objective functions and display in the textbox within this label.</p>
+<p><img src="image/Dmpotswat_Manual_Chinese/1660569719508.png" alt="1660569719508"></p>
+<ol start="4">
+<li>Parameter selection Label</li>
+</ol>
+<p>Under this label, users can select parameters to be calibrated. Besides, users can modify the initial values, minimum and maximum values of each parameter. Totally, 66 parameters for calibrating Flow, Sediment, Nitrogen, and Phosphorus are included. After finished selection, click the Save Parm Selection button to save the settings. Extra buttons for selecting and deselecting all parameters for flow, sediment, N and P were provided to facilitate the selection process.</p>
+<p><img src="image/Dmpotswat_Manual_Chinese/1660569946718.png" alt="1660569946718"></p>
+<ol start="5">
+<li>Sensitivity Analysis Label</li>
+</ol>
+<p>Under this label, users can conduct sensitivity analysis with three methods, including the Sobol, Morris, and FAST. These algorims are conducted by calling corresponding functions in the Salib python package. Details of this package are available at <a href="https://salib.readthedocs.io/en/latest/index.html">SALib - Sensitivity Analysis Library in Python — SALib 1.4.6b1.post1.dev2+g00d8e47.d20220712 documentation</a>. After setting the values for corresponding method and finished running the process of sensitivity analysis, the results will be stored in the outfiles_sa folder under the project folder.</p>
+<p><img src="image/Dmpotswat_Manual_Chinese/1660570973335.png" alt="1660570973335"></p>
+<ol start="6">
+<li>Calibration Label:</li>
+</ol>
+<p>Under this label, users can conduct calibration with the Dynamic Dimension Search (DDS) algorithm to optimize the parameter for the SWAT model.
+There are several details to be specified before starting the calibration process:</p>
+<ul>
+<li>
+<p>calibration mode: two modes were provided. Including the distributed mode and the calibrated model. Description of the modes are available at the first section of this manual.</p>
+</li>
+<li>
+<p>initial parameter values: two options are provided. The first option is random value option, by which a random value within the range of minimum and maximum values will be generated for each parameter as the starting point of the calibration process. The second option is the initial value, by which the initial value specified in the Parameter Label will be used as the starting point of the calibration process. The difference of these two option only affect the calibration during the first several runs of the total iterations. As parameters will be updated based on the evolution process of the objective functions.</p>
+</li>
+<li>
+<p>pertubation factor: this factor determined the sampling step during the DDS procedure. By default, it is 0.2.</p>
+</li>
+<li>
+<p>total iterations：Total iteration no to run. This number has two purposes: 1) determine the stopping no (for example 100). 2) determine the numbers of parameters to be selected at each run (for example 25) by the formula: probability = 1 - log(25)/log(100) = 0.301。This probability is used to determine the chance whether a parameter is selected in run 25. The logic of this method was that the number of parameters to be modified decreased with the proceeding of the DDS procedure.
+<img src="image/Dmpotswat_Manual_Chinese/1660616580335.png" alt="1660616580335"></p>
+<p>The y axis of the following figure shows the selection of one parameter during each run. Black bars indicates that one parameter is selected while white bars indicated that the parameter is not selected. This figure shows that the parametes participating the calibration process is decreased in later runs.</p>
+<p><img src="image/Dmpotswat_Manual_Chinese/1660616261948.png" alt="1660616261948"></p>
+</li>
+<li>
+<p>restart mode: new run or continue with what left in the last run, if last run is less than the total iteration number. The software will determine the runno by checking results in outfiles_dds folder.</p>
+</li>
+</ul>
+<p><img src="image/Dmpotswat_Manual_Chinese/1660574786733.png" alt="1660574786733"></p>
+<ol start="7">
+<li>Calibration Plotting Label</li>
+</ol>
+<p>Under this label, users can generate both time series plot and flow dueration curve for any run no during the total iteration. By clicking the &quot;Define Plot Details&quot; button, users can specify the run no and select target plot type. Then, users need to click the &quot;Save plot details&quot; button to save the specification and then the &quot;Create plots&quot; button to generate the plots. The plots will be saved under the outfiles_dds folder.</p>
+<p><img src="image/Dmpotswat_Manual_Chinese/1660727780079.png" alt="1660727780079"></p>
+<p>Examples of the time series plot and duration curve are shown below:</p>
+<p><img src="image/Dmpotswat_Manual_Chinese/1660727884600.png" alt="1660727884600"></p>
+<p><img src="image/Dmpotswat_Manual_Chinese/1660727866667.png" alt="1660727866667"></p>
+<ol start="8">
+<li>Select Best Run Label</li>
+</ol>
+<p>Under this label, users can select the best run number by checking the values of objective functions at each run. By clicking the &quot;Select Best Parameter Set&quot; button, a table showing the values will be displayed. Then, users need to click on the target run to select the run no. Then, determine the purpose of the best run. This selection are mainly for labeling the output folders storing the files of the model containing best parameters from the select run no. Users can use the Calibration Plotting label to help determine the run no that provides best run no. After selecting the run no, users can click the &quot;Run with Best Parameter Set&quot; button to run the model with best run no. A copy of the txtinout folder will be made. The plot function is also provided and the two types of plots for the best run will be generated.</p>
+<p><img src="image/Dmpotswat_Manual_Chinese/1660728524883.png" alt="1660728524883"></p>
+<ol start="9">
+<li>Uncertainty Label</li>
+</ol>
+<p>Under this label, the uncertainty plot is generated. By selecting the best iteration number, and click the &quot;Run Uncertainty Plot&quot; button, a time series plot showing the simulation results within 95% of the simulated variable values will be generated.</p>
+<p><img src="image/Dmpotswat_Manual_Chinese/1660728716936.png" alt="1660728716936"></p>
+<p>An example of the uncertainty plot is shown below；</p>
+<p><img src="image/Dmpotswat_Manual_Chinese/1660728748906.png" alt="1660728748906"></p>
+
+</body>
+</html>
