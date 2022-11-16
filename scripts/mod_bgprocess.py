@@ -32,7 +32,7 @@ def runDefaultSWAT(cali_options,
     # Copy the txtinout contents into the purpose folder.
     pip_info_send = """Process: copying txtinout content into the workingdir"""
     pipe_process_to_gui.send("{}".format(pip_info_send))
-    # copyTxtInOutContents(path_txtinout, path_workingdir)
+    copyTxtInOutContents(path_txtinout, path_workingdir)
 
     # Update file.cio to match user specified simulation details
     updateFileCio(cali_options,
@@ -43,11 +43,11 @@ def runDefaultSWAT(cali_options,
     # Intiate the function with an individual Process, which do not share memory
     # with the main interface like using Thread.
     # Then get the commandline output into the pipe for display
-    # runSWATModel(GlobalVars.os_platform,
-    #             proj_path,
-    #             "workingdir",
-    #             GlobalVars.path_src_swat_exe,
-    #             pipe_process_to_gui)
+    runSWATModel(GlobalVars.os_platform,
+                proj_path,
+                "workingdir",
+                GlobalVars.path_src_swat_exe,
+                pipe_process_to_gui)
 
     # Get observed data
     # This function added the key "df_obs" to the outlet_detail dict
