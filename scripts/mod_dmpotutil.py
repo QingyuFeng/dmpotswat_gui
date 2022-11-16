@@ -434,7 +434,7 @@ def initialOutFNameParmObjSublvl(
             var_name = var_name.split("(")[0]
 
             # Initialize the objective value files
-            if outlet_detail["outlet_id"] != "not_grouped_subareas":
+            if outlet_detail["outletid"] != "not_grouped_subareas":
                 fnObjFunEachRun = os.path.join(
                     path_output,
                     "DMPOT_ObjFun_{}{}_{}.out".format(
@@ -487,29 +487,17 @@ def writeOutFileHeadersParmObjSublvl(cali_mode,
     dist_par_val_hdr_sub = "RunNO,Outlet,Var," + ",".join(parm_sub_level_symbol.to_list()) + "\n"
     lump_obj_val_hdr_basin = "RunNO,Outlet,TestOF,BestOF,probVal\n"
 
-    for opKeys, outlet_detail in all_outlet_detail.items():
-        if opKeys != "not_grouped_subareas":
+    if cali_mode == "dist":
+        for opKeys, outlet_detail in all_outlet_detail.items():
+
             # Get the corresponding parameter set for the variables of this pair
             var_id = outlet_detail["variableid"]
-            var_name = pair_varid_obs_header[var_id].split("(")[0]
+            # var_name = pair_varid_obs_header[var_id].split("(")[0]
             if os.path.isfile(sub_objfun_outfn[opKeys]):
                 os.remove(sub_objfun_outfn[opKeys])
             with open(sub_objfun_outfn[opKeys], 'w') as obfFile:
                 obfFile.writelines(dist_obj_val_hdr_sub)
 
-            # Only if under dist, these need to be written
-            if cali_mode == "dist":
-                if os.path.isfile(sub_parm_value_outfn[opKeys]):
-                    os.remove(sub_parm_value_outfn[opKeys])
-                with open(sub_parm_value_outfn[opKeys], 'w') as parvFile:
-                    parvFile.writelines(dist_par_val_hdr_sub)
-                if os.path.isfile(sub_parm_select_outfn[opKeys]):
-                    os.remove(sub_parm_select_outfn[opKeys])
-                with open(sub_parm_select_outfn[opKeys], 'w') as parselFile:
-                    parselFile.writelines(dist_par_val_hdr_sub)
-        # This not_grouped_subareas key exists both under lumped or dist
-        # And the parameter values will be recorded under both mode
-        elif opKeys == "not_grouped_subareas":
             if os.path.isfile(sub_parm_value_outfn[opKeys]):
                 os.remove(sub_parm_value_outfn[opKeys])
             with open(sub_parm_value_outfn[opKeys], 'w') as parvFile:
@@ -520,115 +508,28 @@ def writeOutFileHeadersParmObjSublvl(cali_mode,
             with open(sub_parm_select_outfn[opKeys], 'w') as parselFile:
                 parselFile.writelines(dist_par_val_hdr_sub)
 
-            if os.path.isfile(sub_objfun_outfn[opKeys]):
-                os.remove(sub_objfun_outfn[opKeys])
-            with open(sub_objfun_outfn[opKeys], 'w') as obfFile:
-                obfFile.writelines(lump_obj_val_hdr_basin)
+    elif cali_mode == "lump":
 
-    # if cali_options["cali_mode"] == "dist":
-    #     # Files recording the autocalibration processes
-    #     # Each observed data element contains a pair of outlet and subarea
-    #     # Initiate the objective function values and out files
-    #     # Here, we will need to get actually the outlet_var list since
-    #     # one outlet might have two variables. Thus, each pair, will have
-    #     # one file.
-    #     # For distributed mode, the objective function in the file is its
-    #     # objectives get during the iteration. However, if there are more than
-    #     # one objective functions selected with weights, the combined
-    #     # objective function will need to be recorded as well.
-    #     # This is actually recorded in the TestOF values.
-    #     # Headers of obf value and param value files.
-    #
-    #     for opKeys in all_outlet_detail.keys():
-    #         # Initialize the parameter files
-    #         var_name = pair_varid_obs_header[all_outlet_detail[opKeys]["variableid"]]
-    #         var_name = var_name.split("(")[0]
-    #         fnParaEachRun = os.path.join(path_output,
-    #                                      "DMPOT_Para_{}{}_{}.out".format(
-    #                                          all_outlet_detail[opKeys]["outletid"],
-    #                                          var_name,
-    #                                          "dist"))
-    #         if os.path.isfile(fnParaEachRun):
-    #             os.remove(fnParaEachRun)
-    #         sub_parm_fnames[opKeys] = fnParaEachRun
-    #         with open(sub_parm_fnames[opKeys], 'w') as parvFile:
-    #             parvFile.writelines(dist_par_val_hdr)
-    #
-    #         # Initialize the parameter selection files
-    #         fnParaSelEachRun = os.path.join(path_output,
-    #                                         "DMPOT_ParaSel_{}{}_{}.out".format(
-    #                                          all_outlet_detail[opKeys]["outletid"], var_name, "dist"))
-    #         if os.path.isfile(fnParaSelEachRun):
-    #             os.remove(fnParaSelEachRun)
-    #         sub_parm_select_fnames[opKeys] = fnParaSelEachRun
-    #         with open(sub_parm_select_fnames[opKeys], 'w') as parselFile:
-    #             parselFile.writelines(dist_par_val_hdr)
-    #
-    #         # Initialize the objective value files
-    #         fnObjFunEachRun = os.path.join(path_output,
-    #                                        "DMPOT_ObjFun_{}{}_{}.out".format(
-    #                                          all_outlet_detail[opKeys]["outletid"], var_name, "dist"))
-    #         if os.path.isfile(fnObjFunEachRun):
-    #             os.remove(fnObjFunEachRun)
-    #         sub_obj_fnames[opKeys] = fnObjFunEachRun
-    #         with open(sub_obj_fnames[opKeys], 'w') as obfFile:
-    #             obfFile.writelines(dist_obj_val_hdr)
-    #
-    # elif cali_options["cali_mode"] == "lump":
-    #     # Initiate the objective function values and out files
-    #     # Here, we will need to get actually the outlet_var list since
-    #     # one outlet might have two variables
-    #     # For lumped mode, besides getting its own objective function, there
-    #     # need to be a file summarizing the best objective function.
-    #     # This will be done by adding a column to record this.
-    #     # For lump, there are two layers of weights, the weights of different
-    #     # objective functions, and the weights of each outlet pair.
-    #     # For the lumped mode, an additional file containing the
-    #     # overall objective functions for all different pairs will be created.
-    #     # The parameter file and parameter selection file will be
-    #     # one since there are lumped.
-    #     # Actually, the TestOF value should be all equal to each other for
-    #     # different pairs. Also, the best obf for each pair should be recorded.
-    #     # Thus, the head need to have one more column recording the overall obj
-    #     dist_obj_val_hdr = "RunNO,Outlet,NSE,R2,MSE,PBIAS,RMSE,TestOFPair,BestOFPair,TestOFBasin,BestOFBasin,probVal\n"
-    #     dist_par_val_hdr = "RunNO,Outlet," + ",".join(parm_sub_level_symbol.to_list()) + "\n"
-    #
-    #     fnParaEachRun = os.path.join(path_output,
-    #                                  "DMPOT_Para_lump.out")
-    #     if os.path.isfile(fnParaEachRun):
-    #         os.remove(fnParaEachRun)
-    #     sub_parm_fnames["not_grouped_subareas"] = fnParaEachRun
-    #     with open(sub_parm_fnames["not_grouped_subareas"], 'w') as parvFile:
-    #         parvFile.writelines(dist_par_val_hdr)
-    #
-    #     # Only one subparam file need to be initialized
-    #     fnParaSelEachRun = os.path.join(path_output,
-    #                                     "DMPOT_ParaSel_lump.out")
-    #     if os.path.isfile(fnParaSelEachRun):
-    #         os.remove(fnParaSelEachRun)
-    #     sub_parm_select_fnames["not_grouped_subareas"] = fnParaSelEachRun
-    #     with open(sub_parm_select_fnames["not_grouped_subareas"], 'w') as parsFile:
-    #         parsFile.writelines(dist_par_val_hdr)
-    #
-    #     # Files recording the autocalibration processes
-    #     for opKeys in all_outlet_detail.keys():
-    #         # Initialize the parameter files
-    #         var_name = pair_varid_obs_header[all_outlet_detail[opKeys]["variableid"]]
-    #         var_name = var_name.split("(")[0]
-    #
-    #         # Initialize the objective value files
-    #         fnObjFunEachRun = os.path.join(path_output,
-    #                    "DMPOT_ObjFun_{}{}_{}.out".format(
-    #                      all_outlet_detail[opKeys]["outletid"],
-    #                      var_name,
-    #                      "lump"))
-    #         if os.path.isfile(fnObjFunEachRun):
-    #             os.remove(fnObjFunEachRun)
-    #         sub_obj_fnames[opKeys] = fnObjFunEachRun
-    #         with open(sub_obj_fnames[opKeys], 'w') as obfFile:
-    #             obfFile.writelines(dist_obj_val_hdr)
-    #
-    # return sub_parm_fnames, sub_obj_fnames, sub_parm_select_fnames
+        if os.path.isfile(sub_parm_value_outfn["not_grouped_subareas"]):
+            os.remove(sub_parm_value_outfn["not_grouped_subareas"])
+        with open(sub_parm_value_outfn["not_grouped_subareas"], 'w') as parvFile:
+            parvFile.writelines(dist_par_val_hdr_sub)
+
+        if os.path.isfile(sub_parm_select_outfn["not_grouped_subareas"]):
+            os.remove(sub_parm_select_outfn["not_grouped_subareas"])
+        with open(sub_parm_select_outfn["not_grouped_subareas"], 'w') as parselFile:
+            parselFile.writelines(dist_par_val_hdr_sub)
+
+        for opKeys, outlet_detail in all_outlet_detail.items():
+            if opKeys != "not_grouped_subareas":
+                # Get the corresponding parameter set for the variables of this pair
+                var_id = outlet_detail["variableid"]
+                # var_name = pair_varid_obs_header[var_id].split("(")[0]
+                if os.path.isfile(sub_objfun_outfn[opKeys]):
+                    os.remove(sub_objfun_outfn[opKeys])
+                with open(sub_objfun_outfn[opKeys], 'w') as obfFile:
+                    obfFile.writelines(dist_obj_val_hdr_sub)
+
 
 
 ##########################################################################
@@ -907,7 +808,7 @@ def getRch2DF(fnRch, iPrintForCio, totalRchNum):
 
     # Corresponding heads used in the observed data
     # facilitating the extraction of output variables.
-    hedr = ["RCH", "GIS", "MON", "AREAkm2",
+    hedr = ["REACH", "RCH", "GIS", "MON", "AREAkm2",
             "sf(m3/s)", " sed(t/ha)", "orgn(kg/ha)",
             "orgp(kg/ha)", "no3n(kg/ha)", "nh4n(kg/ha)",
             "no2n(kg/ha)", "minp(kg/ha)", "solpst(mg/ha)",
@@ -1385,14 +1286,10 @@ def modifyParInFileSub(proj_path,
     """
 
     file_extension_list = parm_sub_group["File"].unique()
-    print(sub_level_fname_for_groups)
 
     for file_ext in file_extension_list:
         # Get the list of parameters in a certain file
         selected_parms_in_file = parm_sub_group.loc[parm_sub_group["File"] == file_ext]
-
-        print(file_ext)
-        print(selected_parms_in_file)
 
         # Update subarea level files
         # subLvlFlExtLst = [".sub", ".rte", ".swq"]
@@ -2081,7 +1978,7 @@ def getUsrBestParmSet(all_outlet_detail,
 
     elif cali_options["cali_mode"] == "lump":
         sub_parm_value_outfn = os.path.join(path_calibration_output,
-                                     "DMPOT_Para_lump.out")
+                                     "DMPOT_Para_lump_sub_level.out")
 
         # Read in the parameter from the calibrated file
         parm_sub_level_whole = pandas.read_csv(

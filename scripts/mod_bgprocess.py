@@ -32,7 +32,7 @@ def runDefaultSWAT(cali_options,
     # Copy the txtinout contents into the purpose folder.
     pip_info_send = """Process: copying txtinout content into the workingdir"""
     pipe_process_to_gui.send("{}".format(pip_info_send))
-    copyTxtInOutContents(path_txtinout, path_workingdir)
+    # copyTxtInOutContents(path_txtinout, path_workingdir)
 
     # Update file.cio to match user specified simulation details
     updateFileCio(cali_options,
@@ -43,11 +43,11 @@ def runDefaultSWAT(cali_options,
     # Intiate the function with an individual Process, which do not share memory
     # with the main interface like using Thread.
     # Then get the commandline output into the pipe for display
-    runSWATModel(GlobalVars.os_platform,
-                proj_path,
-                "workingdir",
-                GlobalVars.path_src_swat_exe,
-                pipe_process_to_gui)
+    # runSWATModel(GlobalVars.os_platform,
+    #             proj_path,
+    #             "workingdir",
+    #             GlobalVars.path_src_swat_exe,
+    #             pipe_process_to_gui)
 
     # Get observed data
     # This function added the key "df_obs" to the outlet_detail dict
@@ -404,7 +404,40 @@ def runPlotBestParmOut(pipe_process_to_gui,
     fdname_best_outfiles = "outfiles_best_{}".format(cali_options["bestrun_purpose"])
     for outlet_key, outlet_detail in cali_options["outlet_details"].items():
         if not outlet_detail["outletid"] == "not_grouped_subareas":
-            generatingPlots(proj_path,
+
+            # Check whether the best run time series exists before. If not,
+            # create a warning:
+            # Read the output csv files for specified run no
+            outlet_id = int(outlet_detail["outletid"])
+            variable_id = outlet_detail["variableid"]
+            variable_header = GlobalVars.pair_varid_obs_header[variable_id]
+
+            cali_mode_text = ""
+
+            if cali_options["cali_mode"] == "dist":
+                cali_mode_text = "Distributed"
+            elif cali_options["cali_mode"] == "lump":
+                cali_mode_text = "Lumped"
+
+            # Read the output csv files for specified run no
+            fd_ts_eachrun = os.path.join(proj_path, fdname_best_outfiles, "timeseries")
+            fnp_sim_this_run = os.path.join(fd_ts_eachrun,
+                                            "obssimpair_{}_{}_{}.csv".format(
+                                                outlet_detail["outletid"],
+                                                variable_header.split("(")[0],
+                                                cali_options["best_run_no"]
+                                            ))
+
+            if not os.path.isfile(fnp_sim_this_run):
+                pip_info_send = """Process: The best simulation was not found. Please run the model first before generating figures"""
+                pipe_process_to_gui.send("{}".format(pip_info_send))
+
+                pip_info_send = """bgrundone"""
+                pipe_process_to_gui.send("{}".format(pip_info_send))
+
+            else:
+
+                generatingPlots(proj_path,
                         outlet_detail,
                         cali_options["cali_mode"],
                         cali_options["best_run_no"],
@@ -413,11 +446,7 @@ def runPlotBestParmOut(pipe_process_to_gui,
                         fdname_best_outfiles,
                         pipe_process_to_gui)
 
-    pip_info_send = """Process: Finished creating plots"""
-    pipe_process_to_gui.send("{}".format(pip_info_send))
 
-    pip_info_send = """bgrundone"""
-    pipe_process_to_gui.send("{}".format(pip_info_send))
 
 ##########################################################################
 def runCalibration(pipe_process_to_gui,
@@ -1143,14 +1172,9 @@ def runUncertaintyPlot(pipe_process_to_gui,
     ts_obs_sim_all_runs = {}
 
     for olt_key, outlet_detail in all_outlet_detail.items():
+        outlet_id = all_outlet_detail[olt_key]["outletid"]
         var_name_full = GlobalVars.pair_varid_obs_header[outlet_detail["variableid"]]
         var_name = var_name_full.split("(")[0]
-        # Get objective function values
-        # sub_objfun_outfn = os.path.join(path_out_calibration,
-        #                                     "DMPOT_ObjFun_{}{}_{}.out".format(
-        #                                         outlet_detail["outletid"],
-        #                                         var_name,
-        #                                         "dist"))
 
         # Get time series values
         for run_index in range(1, int(total_sim_no) + 1):
@@ -1163,6 +1187,10 @@ def runUncertaintyPlot(pipe_process_to_gui,
             # Read in the parameter from the calibrated file
             timeseries_sub_whole = pandas.read_csv(
                 fnp_sim_this_run, sep=",")
+
+            mean_sim_run = timeseries_sub_whole["{}_y".format(var_name_full)].mean()
+            if pandas.isna(mean_sim_run):
+                continue
 
             # Get the observed and date in the frist run
             if run_index == 1:
@@ -1179,7 +1207,7 @@ def runUncertaintyPlot(pipe_process_to_gui,
                 )
 
         # Making plots
-        pip_info_send = """Process: Creating uncertainty plots with 95 percentile"""
+        pip_info_send = """Process: Creating uncertainty plots for outlet {} with 95 percentile""".format(outlet_id)
         pipe_process_to_gui.send("{}".format(pip_info_send))
 
         generatingUncertaintyPlots(

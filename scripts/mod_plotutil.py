@@ -27,7 +27,7 @@ def generatingUncertaintyPlots(
     fnp_out_fig = os.path.join(
         proj_path,
         "outfiles_dds",
-        "uncertainty{}{}.png".format(outlet_id, variable_name))
+        "uncertaintyplots{}{}.png".format(outlet_id, variable_name))
 
     fig, axes = plt.subplots(1, 1,
                         figsize=(10, 6),
@@ -47,9 +47,10 @@ def generatingUncertaintyPlots(
               label="Best simulated", color='blue')
 
     # in percent
-    prediction_interval = 95
+    prediction_interval = 95.0
 
     # Determining the upper and lower bounds of the simulated values
+
     lower_percentile = numpy.percentile(
         ts_obs_sim_all_runs["Sim"],
         50 - prediction_interval / 2., axis=0)
@@ -78,7 +79,7 @@ def generatingPlots(proj_path,
                    run_index,
                    pair_varid_obs_header,
                    plot_purpose,
-                    fnd_ts_outfiles,
+                   fnd_ts_outfiles,
                    pipe_process_to_gui):
     """
     This function generate line charts for observed vs simulated flow and

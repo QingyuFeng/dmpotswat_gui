@@ -1,0 +1,11 @@
+# User-specific files
+# ignore
+
+build
+dependencies
+testingSAMethod
+WindowsInstaller
+DmpotswaticoCreation.pptx
+venv_dmpotswatgui
+dist
+ArcpySSLMFP_setup_v1.1.7z
