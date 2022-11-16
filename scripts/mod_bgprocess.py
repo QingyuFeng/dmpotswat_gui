@@ -549,7 +549,12 @@ def runCalibration(pipe_process_to_gui,
         "obj_basin_test": 1000,
         "obj_basin_best": 1000}
 
-    # Get the number of previous runs if restart mode = Continue
+    # Get the number of previous runs if restart mode = Continue:
+    # initialize output folders
+    path_output = os.path.join(proj_path, "outfiles_dds")
+    if not os.path.isdir(path_output):
+        os.mkdir(path_output)
+
     # Initializing output files
     # Subarea level
     sub_parm_value_outfn, sub_parm_select_outfn, sub_objfun_outfn = initialOutFNameParmObjSublvl(
@@ -1007,6 +1012,8 @@ def runSensitivityAnalysis(pipe_process_to_gui,
         len(sa_parm_sample_df))
 
     # Initialize output files for each outlet
+    path_output = os.path.join(proj_path, "outfiles_sa")
+
     sa_fnout_avgvar = initialOutFileSA(
         all_outlet_detail,
         proj_path,
