@@ -437,6 +437,9 @@ def runPlotBestParmOut(pipe_process_to_gui,
 
             else:
 
+                outlet_detail["plot_time_series"] = "true"
+                outlet_detail["plot_duration_curve"] = "true"
+
                 generatingPlots(proj_path,
                         outlet_detail,
                         cali_options["cali_mode"],
