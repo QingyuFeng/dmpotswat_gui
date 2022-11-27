@@ -181,14 +181,22 @@ def genePlotDurationCurve(fnp_duration_curve,
     """
     fig = None
 
-    obs_ts = obs_sim_pair_dataframe["sf(m3/s)_x"]
-    sim_ts = obs_sim_pair_dataframe["sf(m3/s)_y"]
+    obs_ts = obs_sim_pair_dataframe["{}_x".format(variable_header)].tolist()
+    sim_ts = obs_sim_pair_dataframe["{}_y".format(variable_header)].tolist()
+
     # The number of subplots need to be specified by users
     # for customization
     noColFig = 1
     noRowFig = 1
     figWidth = 10
     figHeight = 6
+
+    # In order to include missing values in observed data, they will be converted to
+    # np.nan
+    for obsIdx in range(len(obs_ts)):
+        if obs_ts[obsIdx] == -99:
+            obs_ts[obsIdx] = numpy.nan
+            sim_ts[obsIdx] = numpy.nan
 
     fig, axes = plt.subplots(noRowFig, noColFig,
                         figsize=(figWidth, figHeight),
@@ -332,8 +340,15 @@ def genePlotTimeSeries(fnp_time_series,
     """
     fig = None
 
-    obs_ts = obs_sim_pair_dataframe["{}_x".format(variable_header)]
-    sim_ts = obs_sim_pair_dataframe["{}_y".format(variable_header)]
+    obs_ts = obs_sim_pair_dataframe["{}_x".format(variable_header)].tolist()
+    sim_ts = obs_sim_pair_dataframe["{}_y".format(variable_header)].tolist()
+
+    # In order to include missing values in observed data, they will be converted to
+    # np.nan
+    for obsIdx in range(len(obs_ts)):
+        if obs_ts[obsIdx] == -99:
+            obs_ts[obsIdx] = numpy.nan
+            sim_ts[obsIdx] = numpy.nan
 
     fig, axes = plt.subplots(1, 1,
                              figsize=(10, 6),
@@ -349,7 +364,7 @@ def genePlotTimeSeries(fnp_time_series,
     # axes.set_title("Outlet {} {} Run No {} {} {}".format(
     #     outletid, variable_header, run_index, plot_purpose, cali_mode_text))
 
-    axes.set_xlabel("Number of Runs")
+    axes.set_xlabel("Time")
     axes.set_ylabel("{}".format(variable_header))
 
     # Control grids
@@ -359,3 +374,6 @@ def genePlotTimeSeries(fnp_time_series,
     axes.tick_params(which='major', direction="in")
 
     fig.savefig(fnp_time_series, bbox_inches="tight")
+
+    # Close plot
+    plt.close()

@@ -73,7 +73,7 @@ class global_vars():
             self.fname_swat_executable = "swat2012.681.gfort.rel"
 
         elif self.os_platform == "Windows":
-            self.fname_swat_executable = "swat2012rel670.exe"
+            self.fname_swat_executable = "swat201268564rel.exe"
 
         self.path_src_swat_exe = os.path.join(
             self.path_app_root,

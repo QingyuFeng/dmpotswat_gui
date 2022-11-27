@@ -165,7 +165,7 @@ class mainWindow(tkinter.Tk):
         # set icon
         self.iconbitmap(GlobalVars.path_main_icon)
 
-        self.window_width = 950
+        self.window_width = 1050
         self.window_height = 700
 
         # get the screen dimension
@@ -892,6 +892,7 @@ class mainWindow(tkinter.Tk):
                                              width=5, style="TEntry",
                                              textvariable=self.input_outlet_var_no,
                                              justify="center")
+
         # Display freq and outlets
         self.frame_freq_outlet.pack(padx=padx_val, pady=pady_val, ipadx=ipadx_val,
                                     ipady=ipadx_val, expand=False, fill="none", side="top")
@@ -934,12 +935,21 @@ class mainWindow(tkinter.Tk):
         self.ckbtn_copy_observed = ttk.Checkbutton(
             self.frame_btns_detail_save,
             style="TCheckbutton",
-            text="""Please copy observed data into the \"observeddata\" folder""",
+            text="""Please copy observed data to \"observeddata\" folder""",
             onvalue="true",
             offvalue="false",
             variable=self.input_copy_observed,
             state='normal',
             command=self.is_checked_observed)
+
+        # Added Nov 27 by Qingyu Feng to generate split shapefiles
+        self.btn_create_subws_shp = ttk.Button(
+            self.frame_btns_detail_save,
+            style="TButton",
+            text="Create Sub-watershed Shp",
+            command=self.createSubWatershedShapefile,
+            state="disable")
+        # Finished Add Nov 27 by Qingyu Feng to generate split shapefiles
 
         # Display calibration option frame
         self.frame_btns_detail_save.pack(padx=padx_val, pady=pady_val, ipadx=ipadx_val,
@@ -954,6 +964,11 @@ class mainWindow(tkinter.Tk):
                                       ipady=ipadx_val, expand=False, fill="none", side="left")
         # self.btn_save_options.pack(padx= padx_val, pady = pady_val, ipadx = ipadx_val,
         #                            ipady = ipadx_val, expand=False, fill="none", side="right")
+
+        # Added Nov 27 by Qingyu Feng to generate split shapefiles
+        self.btn_create_subws_shp.pack(padx=padx_val, pady=pady_val, ipadx=ipadx_val,
+                                      ipady=ipadx_val, expand=False, fill="none", side="left")
+        # Finished Add Nov 27 by Qingyu Feng to generate split shapefiles
 
         # Configure outlets details
         self.frame_outlet_details = ttk.Frame(self.frame_swat_info_tab, style="TFrame")
@@ -979,6 +994,7 @@ class mainWindow(tkinter.Tk):
             widgets.destroy()
 
         self.proj_data["gui_status"]["definebtnclick"] = "false"
+
 
     def define_outlet_details(self):
         """
@@ -1243,6 +1259,8 @@ class mainWindow(tkinter.Tk):
                     padx=padx_val, pady=pady_val, ipadx=ipadx_val, ipady=ipadx_val,
                     expand="true", fill="y", side="bottom")
 
+
+
     def save_swat_config(self):
         """
         save the user entered outlet data into the proj data and update the project file
@@ -1290,6 +1308,8 @@ class mainWindow(tkinter.Tk):
         write_pickle_file(self.proj_data, self.proj_data["gui_status"]["proj_file"])
         showinfo("Confirmation", "SWAT model specifications saved!")
 
+        self.btn_create_subws_shp.configure(state="normal")
+
         # Enable the evaluate default model/parameter selection/sensitivityanalysis/calibration tab
         self.main_notebook.tab(tab_id=2, state="normal")
         self.main_notebook.tab(tab_id=3, state="normal")
@@ -1298,6 +1318,26 @@ class mainWindow(tkinter.Tk):
         self.main_notebook.tab(tab_id=6, state="normal")
         self.main_notebook.tab(tab_id=7, state="normal")
         self.main_notebook.tab(tab_id=8, state="normal")
+
+
+    def createSubWatershedShapefile(self):
+        """
+        collect the parameters and run sa
+        :return:
+        """
+        # Set the destination of displaying
+        # proc.join() is not used since it will suspend the main thread,
+        # here, the gui.
+        self.btn_create_subws_shp.config(state="disable")
+        # self.display_destination = "run_calibration"
+        self.proc_run_createshapes = threading.Thread(
+            target=runCreateSubwatershedShapefile,
+            args=(self.proj_data["cali_options"],
+                  self.proj_data["gui_status"]["proj_path"],))
+
+        self.proc_run_createshapes.daemon = True
+        self.proc_run_createshapes.start()
+
 
     def gui_default_run(self):
         """
@@ -2135,6 +2175,8 @@ class mainWindow(tkinter.Tk):
 
         self.button_save_cali = ttk.Button(self.frame_run_cali, text="Save Calibration setting",
                                            command=self.save_cali_setting)
+
+
         self.button_run_cali = ttk.Button(self.frame_run_cali, text="Run Calibration",
                                           command=self.processRunCalibration, state="disable")
 
@@ -2147,6 +2189,7 @@ class mainWindow(tkinter.Tk):
         #                               expand=False, fill="none", side="left")
         self.button_save_cali.pack(ipadx=ipadx_val, ipady=ipady_val, padx=padx_val, pady=pady_val,
                                    expand="true", fill="none", side="left")
+
         self.button_run_cali.pack(ipadx=ipadx_val, ipady=ipady_val, padx=padx_val, pady=pady_val,
                                   expand="true", fill="none", side="left")
 
@@ -2203,6 +2246,7 @@ class mainWindow(tkinter.Tk):
             elif self.proj_data["gui_status"]["copy_observed_data"] == "true":
                 self.button_run_cali.configure(state="normal")
 
+
     def is_checked_observed(self):
         """
         Check whether the observed value is put properly into the folder
@@ -2250,6 +2294,7 @@ class mainWindow(tkinter.Tk):
                 self.proj_data["gui_status"]["copy_observed_data"] = "true"
                 # enable the running default model button
                 self.button_run_dftmodel.configure(state="normal")
+
 
     def gui_best_run(self):
         """
@@ -2498,6 +2543,7 @@ class mainWindow(tkinter.Tk):
         self.proc_run_best.daemon = True
         self.proc_run_best.start()
 
+
     def processPlotBestParmOut(self):
         """
         Initiate the running SWAT model with an individual thread instead of
@@ -2515,10 +2561,10 @@ class mainWindow(tkinter.Tk):
                                               args=(pipe_process_to_gui[0],
                                                     self.proj_data["cali_options"],
                                                     self.proj_data["gui_status"]["proj_path"],
-                                                    self.proj_data["cali_dds"],
                                                     ))
         self.proc_run_best_plot.daemon = True
         self.proc_run_best_plot.start()
+
 
     def processRunCalibration(self):
         """
@@ -2540,6 +2586,7 @@ class mainWindow(tkinter.Tk):
 
         self.proc_run_calibration.daemon = True
         self.proc_run_calibration.start()
+
 
     def processRunSensitivityAnalysis(self):
         """

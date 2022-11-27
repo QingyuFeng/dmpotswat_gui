@@ -24,6 +24,8 @@ import subprocess
 import datetime
 import numpy
 import math
+from sklearn.metrics import r2_score, mean_squared_error
+
 # importing date class from datetime module
 # from datetime import date
 from .global_vars import global_vars
@@ -922,8 +924,20 @@ def calAllStatEachOlt(all_outlet_detail,
         if not outlet_detail["outletid"] == "not_grouped_subareas":
             variable_id = outlet_detail["variableid"]
             variable_header = pair_varid_obs_header[variable_id]
-            obsTS = list(outlet_detail["df_obs_sim"]["{}_x".format(variable_header)])
-            simTS = list(outlet_detail["df_obs_sim"]["{}_y".format(variable_header)])
+            obsTS_orig = list(outlet_detail["df_obs_sim"]["{}_x".format(variable_header)])
+            simTS_orig = list(outlet_detail["df_obs_sim"]["{}_y".format(variable_header)])
+
+            # Updated Nov 25, 2022 by Qingyu Feng
+            # Missing values in obs files are marked by -99 and will be removed when
+            # statistics is calculated
+            obsTS = []
+            simTS = []
+
+            for obsidx in range(len(obsTS_orig)):
+                obs_val = obsTS_orig[obsidx]
+                if not int(obs_val) == -99:
+                    obsTS.append(obs_val)
+                    simTS.append(simTS_orig[obsidx])
 
             """
             PBIAS = 100*(meanQ_Out-meanQ_In)/meanQ_In
@@ -979,35 +993,56 @@ def calAllStatEachOlt(all_outlet_detail,
             # division by zero. It was found that simulated flow were all 0s
             # and this will cause error. It is very rare but still happened.
             # Calculate R2
-            if ((sumSqErrObs == 0.0) or (sumSqErrSim == 0.0)):
-                R2 = -9998
-            else:
-                R2 = (sumProdErrObSm ** 2) / (sumSqErrObs * sumSqErrSim)
+            # if ((sumSqErrObs == 0.0) or (sumSqErrSim == 0.0)):
+            #     R2 = -9998
+            # else:
+            #     R2 = (sumProdErrObSm ** 2) / (sumSqErrObs * sumSqErrSim)
 
-                # Calculate PBIAS = 100 * (sum(sim-obs)/sum(obs))
+            # Calculate PBIAS = 100 * (sum(sim-obs)/sum(obs))
             if obsTSMean == 0.0:
                 PBIAS = 9999
             else:
-                PBIAS = 100 * (simTSMean - obsTSMean) / obsTSMean
+                PBIAS = 100 * sumErrObSm / sum(obsTS)
+
+                if PBIAS > 9999:
+                    PBIAS = 9999
+
 
             if sumSqErrObs == 0.0:
-                NSE = -9998
+                NSE = -999
             else:
                 NSE = 1 - (sumSqErrObSm / sumSqErrObs)
+                # minor adjustments for printing outputs
+                if NSE < -999:
+                    NSE = -999
 
-            if len(obsTS) == 0:
-                RMSE = 9999.99
-                MSE = 9999
-            else:
-                RMSE = (sumSqErrObSm / len(obsTS)) ** 0.5
-                MSE = sumProdErrObSm / len(obsTS)
+            # if len(obsTS) == 0:
+            #     RMSE = 9999.99
+            #     MSE = 9999
+            # else:
+            #     RMSE = (sumSqErrObSm / len(obsTS)) ** 0.5
+            #     MSE = sumProdErrObSm / len(obsTS)
             # Added by Qingyu Feng Mar 26, 2021
+
+            r2_sklearn = r2_score(obsTS, simTS)
+            mse_sklearn = mean_squared_error(obsTS, simTS, squared=True)
+            rmse_sklearn = mean_squared_error(obsTS, simTS, squared=False)
+
+            if mse_sklearn > 9999:
+                mse_sklearn = 9999
+            if rmse_sklearn > 9999:
+                rmse_sklearn = 9999
+            elif rmse_sklearn < -999:
+                rmse_sklearn = -999
+
+            if mse_sklearn > 9999:
+                mse_sklearn = 9999
 
             outlet_detail["pbias_value"] = PBIAS
             outlet_detail["nse_value"] = NSE
-            outlet_detail["rmse_value"] = RMSE
-            outlet_detail["r2_value"] = R2
-            outlet_detail["mse_value"] = MSE
+            outlet_detail["rmse_value"] = rmse_sklearn
+            outlet_detail["r2_value"] = r2_sklearn
+            outlet_detail["mse_value"] = mse_sklearn
 
     return all_outlet_detail
 
@@ -1078,17 +1113,26 @@ def calOltObjFunValue(all_outlet_detail):
 
             # The NSE values will be 1 - nse
             one_minus_nse = 1.0 - float(outlet_detail["nse_value"])
+            one_minus_r2 = 1.0 - abs(float(outlet_detail["r2_value"]))
 
             if outlet_detail["r2_select"] == "1":
-                obj_outlet = obj_outlet + float(outlet_detail["r2_value"]) * std_weights["r2_weight"]
+                obj_outlet = obj_outlet + one_minus_r2 * std_weights["r2_weight"]
+                    # obj_outlet + float(outlet_detail["r2_value"]) * std_weights["r2_weight"]
             elif outlet_detail["nse_select"] == "1":
                 obj_outlet = obj_outlet + one_minus_nse * std_weights["nse_weight"]
             elif outlet_detail["pbias_select"] == "1":
-                obj_outlet = obj_outlet + float(outlet_detail["pbias_value"]) * std_weights["pbias_weight"]
+                obj_outlet = obj_outlet + abs(float(outlet_detail["pbias_value"])) * std_weights["pbias_weight"]
             elif outlet_detail["mse_select"] == "1":
-                obj_outlet = obj_outlet + float(outlet_detail["mse_value"]) * std_weights["mse_weight"]
+                obj_outlet = obj_outlet + abs(float(outlet_detail["mse_value"])) * std_weights["mse_weight"]
             elif outlet_detail["rmse_select"] == "1":
-                obj_outlet = obj_outlet + float(outlet_detail["rmse_value"]) * std_weights["rmse_weight"]
+                obj_outlet = obj_outlet + abs(float(outlet_detail["rmse_value"])) * std_weights["rmse_weight"]
+
+            print("Outlet ID: {} R2: {}, {}".format(outlet_detail["outletid"], float(outlet_detail["r2_value"]), one_minus_r2))
+            print("Outlet ID: {} NSE: {}, {}".format(outlet_detail["outletid"], float(outlet_detail["nse_value"]), one_minus_nse))
+            print("Outlet ID: {} PBIAS: {}".format(outlet_detail["outletid"], float(outlet_detail["pbias_value"])))
+            print("Outlet ID: {} MSE: {}".format(outlet_detail["outletid"], float(outlet_detail["mse_value"])))
+            print("Outlet ID: {} RMSE: {}".format(outlet_detail["outletid"], float(outlet_detail["rmse_value"])))
+            print("Outlet ID: {} obj: {}".format(outlet_detail["outletid"], obj_outlet))
 
             outlet_detail["test_obj_dist"] = obj_outlet
 
@@ -1484,7 +1528,7 @@ def updateBestParmSubAndBasin(
                 # Write the parameter values and objective functions into
                 # corresponding files for recording.
                 # As a record, all parameters tried will be recorded
-                tested_parm_values_sub = ["{:.3f}".format(parVl)
+                tested_parm_values_sub = ["{:.4f}".format(parVl)
                       for parVl in outlet_detail["parm_sub"]["TestVal"]]
                 lfw_parm_values = "{},{},{},".format(runIdx, outlet_detail["outletid"],
                      variable_header) + ",".join(tested_parm_values_sub) + "\n"
@@ -1502,7 +1546,7 @@ def updateBestParmSubAndBasin(
             # These will be written under both dist and lump mode
             # Need to write these variables into a file
             # lfwAllStat = "RunNo,OutLet,NSE,R2,MSE,PBIAS,RMSE,TestOF,BestOF,probVal,TimeThisRun\n"
-            lfw_stat_objfun = """{},{},{},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}\n""".format(
+            lfw_stat_objfun = """{},{},{},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f}\n""".format(
                 runIdx, outlet_detail["outletid"], variable_header,
                 outlet_detail["nse_value"],
                 outlet_detail["r2_value"],
@@ -1518,7 +1562,7 @@ def updateBestParmSubAndBasin(
 
         elif outlet_detail["outletid"] == "not_grouped_subareas":
             # Display the objective function values
-            pip_info_send = """Current and best sum values of objective functions are {:.3f}, {:.3f}""".format(
+            pip_info_send = """Current and best sum values of objective functions are {:.5f}, {:.5f}""".format(
                 basin_obj_func_values["obj_basin_test"],
                 float(basin_obj_func_values["obj_basin_best"]))
             pipe_process_to_gui.send("{}".format(pip_info_send))
@@ -1577,7 +1621,7 @@ def updateBestParmSubAndBasin(
     # Write the objective function values into files
     # Need to write these variables into a file
     # lfwAllStat = "RunNo,OutLet,TestOF,BestOF,probVal\n"
-    lfw_stat_objfun = """{},{},{:.3f},{:.3f},{:.3f}\n""".format(
+    lfw_stat_objfun = """{},{},{:.5f},{:.5f},{:.5f}\n""".format(
         runIdx, "basin_sum",
         float(basin_obj_func_values["obj_basin_test"]),
         float(basin_obj_func_values["obj_basin_best"]),

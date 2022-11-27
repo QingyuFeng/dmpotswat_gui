@@ -4,6 +4,8 @@ import numpy
 import glob
 import multiprocessing
 from shutil import copyfile
+import geopandas as gpd
+from osgeo import ogr
 
 from .global_vars import global_vars
 from .mod_dmpotutil import *
@@ -23,6 +25,7 @@ def runDefaultSWAT(cali_options,
     """
     # Create a folder to store the calibration and validation
     fdname_running = "workingdir"
+
     path_workingdir = os.path.join(proj_path, fdname_running)
     path_txtinout = os.path.join(proj_path, "txtinout")
 
@@ -388,8 +391,7 @@ def runSWATBestParmSet(pipe_process_to_gui,
 ##########################################################################
 def runPlotBestParmOut(pipe_process_to_gui,
                 cali_options,
-                proj_path,
-                cali_dds
+                proj_path
                 ):
     """
     Side process for generating user specified plots
@@ -451,6 +453,78 @@ def runPlotBestParmOut(pipe_process_to_gui,
 
 
 
+
+##########################################################################
+def runCreateSubwatershedShapefile(
+                   cali_options,
+                   proj_path):
+    """
+    run create the shapefiles of subwatersheds for selected outlets
+    :return:
+    """
+    # Create a folder to store the calibration and validation
+    fdname_reachshapefiles = os.path.join(proj_path, "reachshapefile")
+    fname_reachshapefiles = "reach.shp"
+    path_reachshapefiles = os.path.join(fdname_reachshapefiles,
+                                        fname_reachshapefiles)
+
+    if not os.path.isfile(path_reachshapefiles):
+        showinfo("Warning", """The \"reach.shp\" file was not found in the
+                               reachshapefile folder. Please double
+                               check to proceed!""")
+        return
+
+    fdname_subwsshapefiles = os.path.join(fdname_reachshapefiles, "sub_shapefiles")
+    if not os.path.isdir(fdname_subwsshapefiles):
+        os.mkdir(fdname_subwsshapefiles)
+
+    # get Subarea_groups based on calibration mode.
+    # subarea_groups:
+    # : Dictionary
+    # : outlet: [list of subareas for this outlet]
+    # If the user selected distributed mode, the groups will be
+    # generated for each outlet. A new key named "not_grouped_subareas"
+    # might be added if some subareas are excluded in groups for all outlets.
+    subarea_groups = getSubGroupsForOutlet(
+        cali_options["outlet_details"],
+        cali_options["cali_mode"],
+        proj_path)
+
+    # read file
+    reach_shapefile = gpd.read_file(path_reachshapefiles)
+
+    # select rows
+    for outlet_key, subgroups in subarea_groups.items():
+
+        # Define output shapefile names
+        path_subwsshapefiles = os.path.join(
+            fdname_subwsshapefiles,
+            "reach_for_{}.shp".format(outlet_key))
+
+        # Delete files if they exist
+        if os.path.isfile(path_subwsshapefiles):
+            existfile = ogr.Open(path_subwsshapefiles)
+            layer = existfile.GetLayerByIndex(0)
+            count = layer.GetFeatureCount()
+            for feature in range(count):
+                layer.DeleteFeature(feature)
+
+        # Convert string to int in the subgroups
+        subgroups_int = map(int, subgroups)
+        sub_watershed_sel = reach_shapefile.loc[reach_shapefile['GRID_CODE'].isin(subgroups_int), :]
+
+        # select columns
+        # sub_watershed_sel_col = sub_watershed_sel.loc[:,
+        #                    ['county_name', 'attribute1', 'attribute2', 'attribute3', 'attribute4']]
+
+        # write to file
+        sub_watershed_sel.to_file(path_subwsshapefiles)
+
+    showinfo("Confirmation", """Sub-watershed shapefiles for all outlets have been
+        created and stored under the \"reachshapefiles\" folder""")
+
+
+
 ##########################################################################
 def runCalibration(pipe_process_to_gui,
                    cali_options,
@@ -469,6 +543,9 @@ def runCalibration(pipe_process_to_gui,
     fdname_running = "workingdir"
     path_workingdir = os.path.join(proj_path, fdname_running)
     path_txtinout = os.path.join(proj_path, "txtinout")
+
+    if not os.path.isdir(path_workingdir):
+        os.mkdir(path_workingdir)
 
     pip_info_send = """Process: Copying files in the txtinout folder to the workingdir folder !\n"""
     pipe_process_to_gui.send("{}".format(pip_info_send))
