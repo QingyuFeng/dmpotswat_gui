@@ -57,6 +57,8 @@ def runDefaultSWAT(cali_options,
     # outlet_detail = {key_number: {outlet_var: xxx, df_obs}}.
 
     # Get reach file contents into dataframe for calculating statistics
+    pip_info_send = """Process: Reading RCH output for calculation of objective functions"""
+    pipe_process_to_gui.send("{}".format(pip_info_send))
     path_output_rch = os.path.join(proj_path, fdname_running, "output.rch")
     try:
         dataframe_outrch_whole = getRch2DF(path_output_rch,
@@ -90,8 +92,8 @@ def runDefaultSWAT(cali_options,
     all_outlet_detail = calOltObjFunValue(all_outlet_detail)
 
     basin_obj_func_values = {
-        "obj_basin_test": 1000,
-        "obj_basin_best": 1000}
+        "obj_basin_test": 10000.0,
+        "obj_basin_best": 10000.0}
 
     basin_obj_func_values["obj_basin_test"] = calOltBsnFunValue(
         all_outlet_detail,
@@ -231,12 +233,12 @@ def runSWATBestParmSet(pipe_process_to_gui,
     )
 
     basin_obj_func_values = {
-        "obj_basin_test": 1000,
-        "obj_basin_best": 1000}
+        "obj_basin_test": 10000.0,
+        "obj_basin_best": 10000.0}
 
     # Subarea level
     sub_parm_value_outfn_best, sub_parm_select_outfn_best, sub_objfun_outfn_best = initialOutFNameParmObjSublvl(
-        cali_options,
+        cali_options["cali_mode"],
         all_outlet_detail,
         proj_path,
         fdname_best_outfiles,
@@ -453,7 +455,6 @@ def runPlotBestParmOut(pipe_process_to_gui,
 
 
 
-
 ##########################################################################
 def runCreateSubwatershedShapefile(
                    cali_options,
@@ -522,7 +523,6 @@ def runCreateSubwatershedShapefile(
 
     showinfo("Confirmation", """Sub-watershed shapefiles for all outlets have been
         created and stored under the \"reachshapefiles\" folder""")
-
 
 
 ##########################################################################
@@ -626,8 +626,8 @@ def runCalibration(pipe_process_to_gui,
     # Initial a counter to record the runs of random
     # counter_initial_runno: counter of run nos for initial runs
     basin_obj_func_values = {
-        "obj_basin_test": 1000,
-        "obj_basin_best": 1000}
+        "obj_basin_test": 10000.0,
+        "obj_basin_best": 10000.0}
 
     # Get the number of previous runs if restart mode = Continue:
     # initialize output folders
@@ -638,7 +638,7 @@ def runCalibration(pipe_process_to_gui,
     # Initializing output files
     # Subarea level
     sub_parm_value_outfn, sub_parm_select_outfn, sub_objfun_outfn = initialOutFNameParmObjSublvl(
-        cali_options,
+        cali_options["cali_mode"],
         all_outlet_detail,
         proj_path,
         "outfiles_dds",
@@ -694,11 +694,16 @@ def runCalibration(pipe_process_to_gui,
                 basin_obj_func_values,
                 start_run_no,
                 cali_options["cali_mode"])
+
             write_outfile_headers = False
+
             if not continue_success:
                 # When continue failed, stop the program
                 return
         else:
+            pip_info_send = """Process: Previous run mode is different or Start no is less than Initial run no {}, start from 1\n""".format(initial_run_times)
+            pipe_process_to_gui.send("{}".format(pip_info_send))
+            start_run_no = 1
             write_outfile_headers = True
 
     else:
@@ -943,6 +948,9 @@ def runCalibration(pipe_process_to_gui,
                      pipe_process_to_gui)
 
         # Get reach file contents into dataframe for calculating statistics
+        pip_info_send = """Process: Reading RCH output for calculation of objective functions"""
+        pipe_process_to_gui.send("{}".format(pip_info_send))
+
         path_output_rch = os.path.join(proj_path, fdname_running, "output.rch")
         try:
             dataframe_outrch_whole = getRch2DF(path_output_rch,
@@ -1035,13 +1043,6 @@ def runSensitivityAnalysis(pipe_process_to_gui,
     # Copy the txtinout contents into the purpose folder.
     copyTxtInOutContents(path_txtinout, path_workingdir)
 
-    # Update file.cio to match user specified simulation details
-    updateFileCio(cali_options,
-                  proj_path,
-                  fdname_running,
-                  GlobalVars.reach_var_list)
-
-    # Preparation procedures
     # get Subarea_groups based on calibration mode.
     # subarea_groups:
     # : Dictionary
@@ -1049,23 +1050,16 @@ def runSensitivityAnalysis(pipe_process_to_gui,
     # If the user selected distributed mode, the groups will be
     # generated for each outlet. A new key named "not_grouped_subareas"
     # might be added if some subareas are excluded in groups for all outlets.
-    subarea_groups = getSubGroupsForOutlet(
-        cali_options["outlet_details"],
-        sa_method_parm["sa_mode"],
-        proj_path)
 
-    # Only one set of parameter values will be used for sensitivity analysis
-    subarea_groups_not_grouped = getSubGroupsForOutlet(
+    # Here, the lump mode is used since all parameters will
+    # be changed in the same way using the sampled values by
+    # sa method
+    subarea_groups = getSubGroupsForOutlet(
         cali_options["outlet_details"],
         "lump",
         proj_path)
-
-    pip_info_send = """Process: Finished grouping subareas"""
+    pip_info_send = """Process: Finished grouping subareas for each outlet !\n"""
     pipe_process_to_gui.send("{}".format(pip_info_send))
-
-    sub_level_fname_for_groups, hru_level_fname_for_groups = initFilenameList(
-        proj_path,
-        subarea_groups)
 
     # Get parameter lists
     parm_basin_level, parm_sub_level = getParmSets(
@@ -1073,9 +1067,87 @@ def runSensitivityAnalysis(pipe_process_to_gui,
         GlobalVars.basin_file_exts,
         GlobalVars.sub_level_file_exts,
         GlobalVars.hru_level_file_exts)
-
-    pip_info_send = """Process: Finished creating parameter database"""
+    pip_info_send = """Process: Finished creating parameter database !\n"""
     pipe_process_to_gui.send("{}".format(pip_info_send))
+
+    # Get observed data
+    # This function added the key "df_obs" to the outlet_detail dict
+    # outlet_detail = {key_number: {outlet_var: xxx, df_obs}}.
+    all_outlet_detail = read_observed_data(
+        cali_options,
+        proj_path,
+        GlobalVars.pair_varid_obs_header,
+        GlobalVars.obs_data_header)
+
+    # Also add the subarea lists to corresponding outlet var pairs.
+    all_outlet_detail = addSubareaGroups(
+        "lump",
+        all_outlet_detail,
+        subarea_groups)
+
+    # Add parameter set for each outlet variable pairs.
+    all_outlet_detail = initParmset(
+        all_outlet_detail,
+        parm_sub_level,
+        GlobalVars.pair_varid_obs_header)
+
+    sub_level_fname_for_groups, hru_level_fname_for_groups = initFilenameList(
+        proj_path,
+        subarea_groups)
+    pip_info_send = """Process: Finished Initiating objective function value"""
+    pipe_process_to_gui.send("{}".format(pip_info_send))
+
+    # Update file.cio to match user specified simulation details
+    updateFileCio(cali_options,
+                  proj_path,
+                  fdname_running,
+                  GlobalVars.reach_var_list)
+
+    pip_info_send = """Process: Finished updating the file.cio file"""
+    pipe_process_to_gui.send("{}".format(pip_info_send))
+
+    pip_info_send = """Process: Finished generating samples"""
+    pipe_process_to_gui.send("{}".format(pip_info_send))
+
+    pip_info_send = """Process: Sensitivity analysis procedure started"""
+    pipe_process_to_gui.send("{}".format(pip_info_send))
+
+    # Initial a counter to record the runs of random
+    # counter_initial_runno: counter of run nos for initial runs
+    basin_obj_func_values = {
+        "obj_basin_test": 10000.0,
+        "obj_basin_best": 10000.0}
+
+    # Initialize output files for each outlet
+    path_output = os.path.join(proj_path, "outfiles_sa")
+    if not os.path.isdir(path_output):
+        os.mkdir(path_output)
+
+    # Create a folder to store the simulated values for plotting purpose
+    fd_ts_eachrun = os.path.join(path_output, "timeseries")
+    if not os.path.isdir(fd_ts_eachrun):
+        os.mkdir(fd_ts_eachrun)
+
+    # Initializing output files
+    # Subarea level
+    # Force Modify cali_options to be ""
+    sub_parm_value_outfn, sub_parm_select_outfn, sub_objfun_outfn = initialOutFNameParmObjSublvl(
+        "lump",
+        all_outlet_detail,
+        proj_path,
+        "outfiles_sa",
+        GlobalVars.pair_varid_obs_header)
+
+    # Basin level
+    bsn_parm_value_fn, bsn_parm_sel_fn, bsn_obj_fn = initialOutFNameParmObjBsnlvl(
+        proj_path,
+        "outfiles_sa",
+        "lump")
+
+    writeSAObjFunFileStatHdrs(all_outlet_detail,
+                              sub_objfun_outfn,
+                              bsn_obj_fn
+                              )
 
     # Generate parameter set for
     fnp_parm_samples, sa_parm_sample_df, sa_parm_sample_array, sa_parm_problem = geneParmSamplesForSA(
@@ -1084,24 +1156,8 @@ def runSensitivityAnalysis(pipe_process_to_gui,
         sa_method_parm,
         proj_path)
 
-    pip_info_send = """Process: Finished generating samples"""
-    pipe_process_to_gui.send("{}".format(pip_info_send))
-
-    all_outlet_detail = generateAllOutletDetails(
-        cali_options["outlet_details"],
+    pip_info_send = """Process: Total iterations : {}""".format(
         len(sa_parm_sample_df))
-
-    # Initialize output files for each outlet
-    path_output = os.path.join(proj_path, "outfiles_sa")
-
-    sa_fnout_avgvar = initialOutFileSA(
-        all_outlet_detail,
-        proj_path,
-        "outfiles_sa")
-
-    pip_info_send = """Process: Total iterations for Sensitivity analysis: {}""".format(
-        len(sa_parm_sample_df)
-    )
     pipe_process_to_gui.send("{}".format(pip_info_send))
 
     parm_sub_level_for_modify = copy.deepcopy(parm_sub_level)
@@ -1114,7 +1170,6 @@ def runSensitivityAnalysis(pipe_process_to_gui,
         pipe_process_to_gui.send("{}".format(pip_info_send))
 
         if len(parm_sub_level.index) > 0:
-
             parm_sub_level_for_modify = updateParmInDf(parm_sub_level_for_modify,
                                                        sa_parm_sample_df.loc[sa_runidx + 1, :])
 
@@ -1158,16 +1213,40 @@ def runSensitivityAnalysis(pipe_process_to_gui,
                      """File {} does not exist: {}. Please double check your TxtInOut \
                     folder and make sure you have a complete set""".format(path_output_rch, e))
 
-        # Extract output values for evaluation
-        # The average value over the time step for the corresponding variable
-        # of each outlet will be extracted
-        all_outlet_detail = extractSimValuesEachGroup(
-            sa_fnout_avgvar,
+        # Then construct series of observed and simulated pairs for stat calculation
+        all_outlet_detail = buildObsSimPair(
             all_outlet_detail,
-            cali_options,
             dataframe_outrch_whole,
             GlobalVars.pair_varid_obs_header,
-            sa_runidx)
+            cali_options)
+
+        # Write the output pair into a file
+        writePairToFile(all_outlet_detail,
+                        fd_ts_eachrun,
+                        sa_runidx,
+                        GlobalVars.pair_varid_obs_header)
+
+        # calculate all statistics of all outlets
+        all_outlet_detail = calAllStatEachOlt(
+            all_outlet_detail,
+            GlobalVars.pair_varid_obs_header)
+
+        # calculate objective function values of all outlets
+        all_outlet_detail = calOltObjFunValue(all_outlet_detail)
+
+        basin_obj_func_values["obj_basin_test"] = calOltBsnFunValue(
+            all_outlet_detail,
+            basin_obj_func_values["obj_basin_test"])
+
+        writeObjFunValtoFile(
+            sa_runidx,
+            all_outlet_detail,
+            basin_obj_func_values,
+            GlobalVars.pair_varid_obs_header,
+            sub_objfun_outfn,
+            bsn_obj_fn,
+            pipe_process_to_gui)
+
 
     # After evalutaing the model with samples, run the analysis to get the sensitivity analysis
     # index for each outlet.
@@ -1175,7 +1254,8 @@ def runSensitivityAnalysis(pipe_process_to_gui,
                      sa_parm_problem,
                      all_outlet_detail,
                      proj_path,
-                     sa_method_parm)
+                     sa_method_parm,
+                     sub_objfun_outfn)
 
     pip_info_send = """Process: Sensitivity Analysis procedure finished"""
     pipe_process_to_gui.send("{}".format(pip_info_send))

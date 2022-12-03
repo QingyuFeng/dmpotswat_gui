@@ -207,14 +207,112 @@ def extractSimValuesEachGroup(
     return all_outlet_detail
 
 
+
+##########################################################################
+def writeObjFunValtoFile(
+        runIdx,
+        all_outlet_detail,
+        basin_obj_func_values,
+        pair_varid_obs_header,
+        sub_objfun_outfn,
+        bsn_obj_fn,
+        pipe_process_to_gui):
+    """
+    This function writet the statistics and objective function values into
+    output files for calculation of sa index.
+    """
+    # For each outlet_variable combination, the difference between the lump and
+    # dist mode is the way how parameter is updated and which objective function is used.
+    # Besides, the way how not_grouped_subareas is processed in different ways.
+    for ovid, outlet_detail in all_outlet_detail.items():
+        variable_id = outlet_detail["variableid"]
+        variable_header = pair_varid_obs_header[variable_id]
+
+        if outlet_detail["outletid"] != "not_grouped_subareas":
+            # Display the objective function values
+            pip_info_send = """Objective function value for outlet {} var {} is: {:.5f}""".format(
+                outlet_detail["outletid"],
+                variable_header,
+                float(outlet_detail["test_obj_dist"]))
+            pipe_process_to_gui.send("{}".format(pip_info_send))
+
+            # Write the objective function values into files
+            # These will be written under both dist and lump mode
+            # Need to write these variables into a file
+            # lfwAllStat = "RunNo,OutLet,Variable,NSE,R2,MSE,PBIAS,RMSE,TestOF\n"
+            # print("type: nse_value, ", type(outlet_detail["nse_value"]), outlet_detail["nse_value"])
+            # print("type: r2_value, ", type(outlet_detail["r2_value"]), outlet_detail["r2_value"])
+            # print("type: mse_value, ", type(outlet_detail["mse_value"]), outlet_detail["mse_value"])
+            # print("type: pbias_value, ", type(outlet_detail["pbias_value"]), outlet_detail["pbias_value"])
+            # print("type: rmse_value, ", type(outlet_detail["rmse_value"]), outlet_detail["rmse_value"])
+            # print("type: test_obj_dist, ", type(outlet_detail["test_obj_dist"]), outlet_detail["test_obj_dist"])
+            # print("type: best_obj_dist, ", type(outlet_detail["best_obj_dist"]), outlet_detail["best_obj_dist"])
+
+            lfw_stat_objfun = """{},{},{},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f}\n""".format(
+                runIdx, outlet_detail["outletid"], variable_header,
+                outlet_detail["nse_value"],
+                outlet_detail["r2_value"],
+                outlet_detail["mse_value"],
+                outlet_detail["pbias_value"],
+                outlet_detail["rmse_value"],
+                outlet_detail["test_obj_dist"])
+
+            with open(sub_objfun_outfn[ovid], 'a') as obfFile:
+                obfFile.writelines(lfw_stat_objfun)
+
+        elif outlet_detail["outletid"] == "not_grouped_subareas":
+            # Display the objective function values
+            pip_info_send = """Sum of objective functions is: {:.5f}""".format(
+                basin_obj_func_values["obj_basin_test"])
+            pipe_process_to_gui.send("{}".format(pip_info_send))
+
+    # Write the objective function values into files
+    # Need to write these variables into a file
+    # lfwAllStat = "RunNo,OutLet,TestOF\n"
+    lfw_stat_objfun = """{},sumobjf,{:.5f}\n""".format(
+        runIdx, float(basin_obj_func_values["obj_basin_test"]))
+
+    with open(bsn_obj_fn, 'a') as obfFile:
+        obfFile.writelines(lfw_stat_objfun)
+
+
+##########################################################################
+def writeSAObjFunFileStatHdrs(all_outlet_detail,
+                              sub_objfun_outfn,
+                              bsn_obj_fn):
+    """
+    Initialize the output file names, including subarea parameter values, subarea
+    objective function, and parameter select during the runs
+    """
+    sub_obj_val_hdr = "RunNo,OutLet,Variable,NSE,R2,MSE,PBIAS,RMSE,TestOF\n"
+    bsn_obj_val_hdr = "RunNo,OutLet,TestOF\n"
+
+    for opKeys, outlet_detail in all_outlet_detail.items():
+        if opKeys != "not_grouped_subareas":
+            # Get the corresponding parameter set for the variables of this pair
+            var_id = outlet_detail["variableid"]
+            # var_name = pair_varid_obs_header[var_id].split("(")[0]
+            # if os.path.isfile(sub_objfun_outfn[opKeys]):
+            #     os.remove(sub_objfun_outfn[opKeys])
+            with open(sub_objfun_outfn[opKeys], 'a') as obfFile:
+                obfFile.writelines(sub_obj_val_hdr)
+
+    # Initialize the basin level parameter file as a record
+    # if os.path.isfile(bsn_obj_fn):
+    #     os.remove(bsn_obj_fn)
+    with open(bsn_obj_fn, 'a') as bsnParmSFile:
+        bsnParmSFile.writelines(bsn_obj_val_hdr)
+
+
 ##########################################################################
 def calculateSAIndex(
         sa_parm_sample_array,
         sa_parm_problem,
         all_outlet_detail,
         proj_path,
-        sa_method_parm
-        ):
+        sa_method_parm,
+        sub_objfun_outfn
+):
     """
     Calculate the saindex with corresponding analysis method.
     :param sa_parm_sample_array:
@@ -224,19 +322,20 @@ def calculateSAIndex(
     :return:
     """
     fd_sa_outputs = os.path.join(proj_path, "outfiles_sa")
-    
-    fn_sample_array_txt = os.path.join(fd_sa_outputs, "parmSample_morris.txt")
-
 
     for outlet_key, outlet_detail in all_outlet_detail.items():
         if not outlet_detail["outletid"] == "not_grouped_subareas":
             outlet_id = int(outlet_detail["outletid"])
             variable_id = outlet_detail["variableid"]
 
-            fn_outlet_list = os.path.join(fd_sa_outputs,
-                                          "oltVal_{}_{}.txt".format(
-                                              outlet_id, variable_id))
-            outlet_variable_sim_mean = np.loadtxt(fn_outlet_list)
+            outlet_statistics = pandas.read_table(
+                sub_objfun_outfn[outlet_key],
+                sep=",",
+                header=0,
+                index_col=0
+            )
+
+            response_list = outlet_statistics["TestOF"].to_numpy()
 
             if sa_method_parm["method"] == "sobol":
                 # SALib.analyze.sobol.analyze(problem, Y, calc_second_order=True,
@@ -244,23 +343,24 @@ def calculateSAIndex(
                 #  parallel=False, n_processors=None, keep_resamples=False,
                 # seed=None)
                 sa_output = sobol.analyze(sa_parm_problem,
-                                         outlet_variable_sim_mean,
-                                         calc_second_order=True,
-                                         print_to_console=False)
+                                          response_list,
+                                          calc_second_order=True,
+                                          print_to_console=False)
                 # Write the output as a dataframe and into a file
                 sa_output_dataframe = sa_output.to_df()
                 fnpout_sa_total = os.path.join(fd_sa_outputs,
-                                                      "oltSATotal_{}_{}_{}.csv".format(
-                                                          outlet_id,
-                                                          variable_id,
-                                                          sa_method_parm["method"]))
+                                               "oltSATotal_{}_{}_{}.csv".format(
+                                                   outlet_id,
+                                                   variable_id,
+                                                   sa_method_parm["method"]))
+
                 sa_output_dataframe[0].to_csv(fnpout_sa_total)
 
                 fnpout_sa_first = os.path.join(fd_sa_outputs,
-                                                      "oltSAFirst_{}_{}_{}.csv".format(
-                                                          outlet_id,
-                                                          variable_id,
-                                                          sa_method_parm["method"]))
+                                               "oltSAFirst_{}_{}_{}.csv".format(
+                                                   outlet_id,
+                                                   variable_id,
+                                                   sa_method_parm["method"]))
                 if os.path.isfile(fnpout_sa_first):
                     os.remove(fnpout_sa_first)
                 sa_output_dataframe[1].to_csv(fnpout_sa_first)
@@ -273,11 +373,11 @@ def calculateSAIndex(
                 # Returns a dictionary with keys ‘mu’, ‘mu_star’, ‘sigma’,
                 # and ‘mu_star_conf’, where each entry is a list of parameters
                 # containing the indices in the same order as the parameter file.
-                sa_parm_sample_array = np.loadtxt(fn_sample_array_txt)
+                # sa_parm_sample_array = np.loadtxt(fn_sample_array_txt)
                 sa_output_morris = morris_analyze.analyze(
                     sa_parm_problem,
                     sa_parm_sample_array,
-                    outlet_variable_sim_mean,
+                    response_list,
                     conf_level=0.95,
                     print_to_console=False
                 )
@@ -285,10 +385,10 @@ def calculateSAIndex(
                 # Write the output as a dataframe and into a file
                 sa_output_dataframe_morris = sa_output_morris.to_df()
                 fnpout_sa_mu = os.path.join(fd_sa_outputs,
-                                                   "oltSA_{}_{}_{}.csv".format(
-                                                       outlet_id,
-                                                       variable_id,
-                                                       sa_method_parm["method"]))
+                                            "oltSA_{}_{}_{}.csv".format(
+                                                outlet_id,
+                                                variable_id,
+                                                sa_method_parm["method"]))
                 if os.path.isfile(fnpout_sa_mu):
                     os.remove(fnpout_sa_mu)
                 sa_output_dataframe_morris.to_csv(fnpout_sa_mu)
@@ -301,8 +401,8 @@ def calculateSAIndex(
                 # where each entry is a list of size D (the number of parameters)
                 # containing the indices in the same order as the parameter file.
                 sa_output_fast = fast.analyze(sa_parm_problem,
-                                        outlet_variable_sim_mean,
-                                        print_to_console=False)
+                                              response_list,
+                                              print_to_console=False)
                 # Write the output as a dataframe and into a file
                 sa_output_dataframe_fast = sa_output_fast.to_df()
                 fnpout_sa_fast = os.path.join(fd_sa_outputs,

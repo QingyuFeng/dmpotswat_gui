@@ -404,8 +404,9 @@ class mainWindow(tkinter.Tk):
         # the current project and create a new one
         create_new = True
         if self.proj_data["gui_status"]["newproject"] == "True":
-            user_save_not = tkinter.messagebox.askyesno("Warning",
-                                                        "Do you want to save current project and continue with a new project?")
+            user_save_not = tkinter.messagebox.askyesno(
+                "Warning",
+                "Do you want to save current project and continue with a new project?")
 
             if user_save_not == False:
                 create_new = False
@@ -570,6 +571,10 @@ class mainWindow(tkinter.Tk):
                                               current_time(),
                                               self.proj_data["gui_status"]["proj_file"]))
         self.textbox_setup_confirm.see("end")
+
+        # Set the title to include the user project name
+        self.title('dmpotswat {}'.format(
+            self.proj_data["gui_status"]["projectname"]))
 
         # Enable the swat model tab
         self.main_notebook.tab(tab_id=1, state="normal")
@@ -1045,11 +1050,11 @@ class mainWindow(tkinter.Tk):
                         elif "select" in dtlkey:
                             self.outlet_var_detail[ovkey][dtlkey].set("0")
                         elif "value" in dtlkey:
-                            self.outlet_var_detail[ovkey][dtlkey].set("-9999")
+                            self.outlet_var_detail[ovkey][dtlkey].set("-999.0")
                         elif dtlkey == "best_obj_dist":
-                            self.outlet_var_detail[ovkey][dtlkey].set("1000")
+                            self.outlet_var_detail[ovkey][dtlkey].set("10000.0")
                         elif dtlkey == "test_obj_dist":
-                            self.outlet_var_detail[ovkey][dtlkey].set("1000")
+                            self.outlet_var_detail[ovkey][dtlkey].set("10000.0")
 
                 # Set the define_plot_target to be true to prevent interface conflict.
                 self.proj_data["gui_status"]["definebtnclick"] = "true"
@@ -1366,6 +1371,7 @@ class mainWindow(tkinter.Tk):
         # TODO: Add function to read the objective function of all outlets, and display sorted best
         # variables in a tree view. Add a scrollbar for display
         # Also, add calibration and validation options. It will be easier here.
+        # TODO: Add button to plot the default results
 
         # Print output of command in to textbox with scrollbar
         self.frame_default_output = ttk.Frame(self.frame_default_run_tab, style="TFrame")

@@ -24,7 +24,7 @@ import subprocess
 import datetime
 import numpy
 import math
-from sklearn.metrics import r2_score, mean_squared_error
+# from sklearn.metrics import r2_score, mean_squared_error
 
 # importing date class from datetime module
 # from datetime import date
@@ -343,7 +343,7 @@ def getParmSets(parm_dict,
 
 ##########################################################################
 def initialOutFNameParmObjSublvl(
-        cali_options,
+        cali_mode,
         all_outlet_detail,
         proj_path,
         fdname_outfiles,
@@ -358,7 +358,7 @@ def initialOutFNameParmObjSublvl(
 
     path_output = os.path.join(proj_path, fdname_outfiles)
 
-    if cali_options["cali_mode"] == "dist":
+    if cali_mode == "dist":
         # Files recording the autocalibration processes
         # Each observed data element contains a pair of outlet and subarea
         # Initiate the objective function values and out files
@@ -380,7 +380,7 @@ def initialOutFNameParmObjSublvl(
                 "DMPOT_Para_{}{}_{}.out".format(
                     outlet_detail["outletid"],
                     var_name,
-                    cali_options["cali_mode"]))
+                    cali_mode))
             sub_parm_fnames[opKeys] = fnParaEachRun
 
             # Initialize the parameter selection files
@@ -389,7 +389,7 @@ def initialOutFNameParmObjSublvl(
                 "DMPOT_ParaSel_{}{}_{}.out".format(
                     outlet_detail["outletid"],
                     var_name,
-                    cali_options["cali_mode"]))
+                    cali_mode))
             sub_parm_select_fnames[opKeys] = fnParaSelEachRun
 
             # Initialize the objective value files
@@ -398,10 +398,10 @@ def initialOutFNameParmObjSublvl(
                 "DMPOT_ObjFun_{}{}_{}.out".format(
                     outlet_detail["outletid"],
                     var_name,
-                    cali_options["cali_mode"]))
+                    cali_mode))
             sub_obj_fnames[opKeys] = fnObjFunEachRun
 
-    elif cali_options["cali_mode"] == "lump":
+    elif cali_mode == "lump":
         # Initiate the objective function values and out files
         # Here, we will need to get actually the outlet_var list since
         # one outlet might have two variables
@@ -442,7 +442,7 @@ def initialOutFNameParmObjSublvl(
                     "DMPOT_ObjFun_{}{}_{}.out".format(
                         outlet_detail["outletid"],
                         var_name,
-                        "lump"))
+                        cali_mode))
                 sub_obj_fnames[opKeys] = fnObjFunEachRun
 
     return sub_parm_fnames, sub_parm_select_fnames, sub_obj_fnames
@@ -564,8 +564,6 @@ def writeOutFileHeadersParmObjBsnlvl(
         os.remove(bsn_obj_fn)
     with open(bsn_obj_fn, 'w') as bsnParmSFile:
         bsnParmSFile.writelines(lump_obj_val_hdr_basin)
-
-    return bsn_parm_value_fn, bsn_parm_sel_fn
 
 
 ##########################################################################
@@ -939,13 +937,6 @@ def calAllStatEachOlt(all_outlet_detail,
                     obsTS.append(obs_val)
                     simTS.append(simTS_orig[obsidx])
 
-            """
-            PBIAS = 100*(meanQ_Out-meanQ_In)/meanQ_In
-            NSE = 1 - (errorSum2/errorSumI2)
-            RMSE = (errorSum2/TimeStatsTotal)**0.5
-            R2 = (errorSumR2**2)/(errorSumI2*errorSumO2)
-            MSE = errorSum2/TimeStatsTotal
-            """
             obsTS = list(map(float, obsTS))
             obsTSMean = sum(obsTS) / len(obsTS)
             simTS = list(map(float, simTS))
@@ -958,11 +949,11 @@ def calAllStatEachOlt(all_outlet_detail,
             sumSqErrSim = 0.0
             sumProdErrObSm = 0.0
 
-            PBIAS = 999.99
-            NSE = 999.99
-            RMSE = 999.99
-            R2 = 999.99
-            MSE = 999.99
+            PBIAS = 999.0
+            NSE = 999.0
+            RMSE = 999.0
+            R2 = 999.0
+            MSE = 999.0
 
             for tsidx in range(len(obsTS)):
                 # IPEATPlus Error: error between OBS(i) and SIM(i)
@@ -993,56 +984,67 @@ def calAllStatEachOlt(all_outlet_detail,
             # division by zero. It was found that simulated flow were all 0s
             # and this will cause error. It is very rare but still happened.
             # Calculate R2
-            # if ((sumSqErrObs == 0.0) or (sumSqErrSim == 0.0)):
-            #     R2 = -9998
-            # else:
-            #     R2 = (sumProdErrObSm ** 2) / (sumSqErrObs * sumSqErrSim)
+            # R2 = sum((obs-obsmean)(sim-simMean)**2)/sum((obs-obsmean)**2)*sum((sim-simMean)**2)
+            # R2 ranges from 0 to 1
+            R2 = (sumProdErrObSm ** 2) / (sumSqErrObs * sumSqErrSim)
+            if pandas.isnull(R2):
+                R2 = -999.0
 
-            # Calculate PBIAS = 100 * (sum(sim-obs)/sum(obs))
+            # Pbias = 100 * sum(obs-sim)/sum(obs) by Danial Moriasi et al., 2007
+            # This is also the equation used in
+            # https://www.rdocumentation.org/packages/hydroGOF/versions/0.4-0/topics/pbias
+            # Pbias = 100 * sum(sim-obs)/sum(obs)
+            # PBias ranges from 0 to infinity
             if obsTSMean == 0.0:
-                PBIAS = 9999
+                PBIAS = 999.0
             else:
                 PBIAS = 100 * sumErrObSm / sum(obsTS)
+                # Deal with the display issue
+                if PBIAS > 999.0:
+                    PBIAS = 999.0
+                elif (PBIAS < -999.0) or pandas.isnull(PBIAS):
+                    PBIAS = -999.0
 
-                if PBIAS > 9999:
-                    PBIAS = 9999
-
-
+            # NSE = 1 - sum((obs-sim) ^ 2)/sum((obs-obsmean) ^ 2)
+            # NSE ranges from minus infinity to 1
             if sumSqErrObs == 0.0:
-                NSE = -999
+                NSE = -999.0
             else:
                 NSE = 1 - (sumSqErrObSm / sumSqErrObs)
                 # minor adjustments for printing outputs
-                if NSE < -999:
-                    NSE = -999
+                if NSE < -999.0 or pandas.isnull(NSE):
+                    NSE = -999.0
 
-            # if len(obsTS) == 0:
-            #     RMSE = 9999.99
-            #     MSE = 9999
-            # else:
-            #     RMSE = (sumSqErrObSm / len(obsTS)) ** 0.5
-            #     MSE = sumProdErrObSm / len(obsTS)
-            # Added by Qingyu Feng Mar 26, 2021
+            # RMSE = sqrt(sum(obs-sim) ^ 2)
+            if len(obsTS) == 0:
+                RMSE = 999.0
+                MSE = 999.0
+            else:
+                RMSE = math.sqrt(sumSqErrObSm / len(obsTS))
+                MSE = sumSqErrObSm / len(obsTS)
 
-            r2_sklearn = r2_score(obsTS, simTS)
-            mse_sklearn = mean_squared_error(obsTS, simTS, squared=True)
-            rmse_sklearn = mean_squared_error(obsTS, simTS, squared=False)
+                # Deal with the display issue
+                if RMSE > 999.0 or pandas.isnull(RMSE):
+                    RMSE = 999.0
+                elif RMSE < -999.0:
+                    RMSE = -999.0
 
-            if mse_sklearn > 9999:
-                mse_sklearn = 9999
-            if rmse_sklearn > 9999:
-                rmse_sklearn = 9999
-            elif rmse_sklearn < -999:
-                rmse_sklearn = -999
+                # Deal with the display issue
+                if MSE > 999.0 or pandas.isnull(RMSE):
+                    MSE = 999.0
 
-            if mse_sklearn > 9999:
-                mse_sklearn = 9999
+            # Added by Qingyu Feng Nov 26, 2022
+            # The sklearn is not used because r2 calculated by sklearn is
+            # not the normal r2.
+            # r2_sklearn = r2_score(obsTS, simTS)
+            # mse_sklearn = mean_squared_error(obsTS, simTS, squared=True)
+            # rmse_sklearn = mean_squared_error(obsTS, simTS, squared=False)
 
             outlet_detail["pbias_value"] = PBIAS
             outlet_detail["nse_value"] = NSE
-            outlet_detail["rmse_value"] = rmse_sklearn
-            outlet_detail["r2_value"] = r2_sklearn
-            outlet_detail["mse_value"] = mse_sklearn
+            outlet_detail["rmse_value"] = RMSE
+            outlet_detail["r2_value"] = R2
+            outlet_detail["mse_value"] = MSE
 
     return all_outlet_detail
 
@@ -1058,6 +1060,8 @@ def calOltBsnFunValue(all_outlet_detail,
     """
 
     basin_test_objfun_val = 0.0
+
+    # TODO: The weight need to be standardized before using, as for the obfun.
 
     # First calculate the objectives for user required outlets.
     for outlet_key, outlet_detail in all_outlet_detail.items():
@@ -1089,7 +1093,7 @@ def calOltObjFunValue(all_outlet_detail):
         # provide reference for the other groups.
         if not outlet_detail["outletid"] == "not_grouped_subareas":
             # Determine the stat value used as objective function
-            obj_outlet = 0
+            obj_outlet = 0.0
             # The weight does not need to be 0 to 1, they are just relative.
             # So, they need to be standardized before being used.
             all_weights = {"r2_weight": float(outlet_detail["r2_weight"]),
@@ -1113,26 +1117,26 @@ def calOltObjFunValue(all_outlet_detail):
 
             # The NSE values will be 1 - nse
             one_minus_nse = 1.0 - float(outlet_detail["nse_value"])
-            one_minus_r2 = 1.0 - abs(float(outlet_detail["r2_value"]))
+            one_minus_r2 = 1.0 - float(outlet_detail["r2_value"])
 
             if outlet_detail["r2_select"] == "1":
                 obj_outlet = obj_outlet + one_minus_r2 * std_weights["r2_weight"]
                     # obj_outlet + float(outlet_detail["r2_value"]) * std_weights["r2_weight"]
-            elif outlet_detail["nse_select"] == "1":
+            if outlet_detail["nse_select"] == "1":
                 obj_outlet = obj_outlet + one_minus_nse * std_weights["nse_weight"]
-            elif outlet_detail["pbias_select"] == "1":
+            if outlet_detail["pbias_select"] == "1":
                 obj_outlet = obj_outlet + abs(float(outlet_detail["pbias_value"])) * std_weights["pbias_weight"]
-            elif outlet_detail["mse_select"] == "1":
+            if outlet_detail["mse_select"] == "1":
                 obj_outlet = obj_outlet + abs(float(outlet_detail["mse_value"])) * std_weights["mse_weight"]
-            elif outlet_detail["rmse_select"] == "1":
+            if outlet_detail["rmse_select"] == "1":
                 obj_outlet = obj_outlet + abs(float(outlet_detail["rmse_value"])) * std_weights["rmse_weight"]
 
-            print("Outlet ID: {} R2: {}, {}".format(outlet_detail["outletid"], float(outlet_detail["r2_value"]), one_minus_r2))
-            print("Outlet ID: {} NSE: {}, {}".format(outlet_detail["outletid"], float(outlet_detail["nse_value"]), one_minus_nse))
-            print("Outlet ID: {} PBIAS: {}".format(outlet_detail["outletid"], float(outlet_detail["pbias_value"])))
-            print("Outlet ID: {} MSE: {}".format(outlet_detail["outletid"], float(outlet_detail["mse_value"])))
-            print("Outlet ID: {} RMSE: {}".format(outlet_detail["outletid"], float(outlet_detail["rmse_value"])))
-            print("Outlet ID: {} obj: {}".format(outlet_detail["outletid"], obj_outlet))
+            # print("Outlet ID: {} R2: {}, {}".format(outlet_detail["outletid"], float(outlet_detail["r2_value"]), one_minus_r2))
+            # print("Outlet ID: {} NSE: {}, {}".format(outlet_detail["outletid"], float(outlet_detail["nse_value"]), one_minus_nse))
+            # print("Outlet ID: {} PBIAS: {}".format(outlet_detail["outletid"], float(outlet_detail["pbias_value"])))
+            # print("Outlet ID: {} MSE: {}".format(outlet_detail["outletid"], float(outlet_detail["mse_value"])))
+            # print("Outlet ID: {} RMSE: {}".format(outlet_detail["outletid"], float(outlet_detail["rmse_value"])))
+            # print("Outlet ID: {} obj: {}".format(outlet_detail["outletid"], obj_outlet))
 
             outlet_detail["test_obj_dist"] = obj_outlet
 
@@ -1328,7 +1332,6 @@ def modifyParInFileSub(proj_path,
     """
     This function modify parameter values in corresponding swat input files.
     """
-
     file_extension_list = parm_sub_group["File"].unique()
 
     for file_ext in file_extension_list:
@@ -1546,6 +1549,14 @@ def updateBestParmSubAndBasin(
             # These will be written under both dist and lump mode
             # Need to write these variables into a file
             # lfwAllStat = "RunNo,OutLet,NSE,R2,MSE,PBIAS,RMSE,TestOF,BestOF,probVal,TimeThisRun\n"
+            # print("type: nse_value, ", type(outlet_detail["nse_value"]), outlet_detail["nse_value"])
+            # print("type: r2_value, ", type(outlet_detail["r2_value"]), outlet_detail["r2_value"])
+            # print("type: mse_value, ", type(outlet_detail["mse_value"]), outlet_detail["mse_value"])
+            # print("type: pbias_value, ", type(outlet_detail["pbias_value"]), outlet_detail["pbias_value"])
+            # print("type: rmse_value, ", type(outlet_detail["rmse_value"]), outlet_detail["rmse_value"])
+            # print("type: test_obj_dist, ", type(outlet_detail["test_obj_dist"]), outlet_detail["test_obj_dist"])
+            # print("type: best_obj_dist, ", type(outlet_detail["best_obj_dist"]), outlet_detail["best_obj_dist"])
+
             lfw_stat_objfun = """{},{},{},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f}\n""".format(
                 runIdx, outlet_detail["outletid"], variable_header,
                 outlet_detail["nse_value"],
@@ -1554,7 +1565,7 @@ def updateBestParmSubAndBasin(
                 outlet_detail["pbias_value"],
                 outlet_detail["rmse_value"],
                 outlet_detail["test_obj_dist"],
-                outlet_detail["best_obj_dist"],
+                float(outlet_detail["best_obj_dist"]),
                 probability_value
             )
             with open(sub_objfun_outfn[ovid], 'a') as obfFile:
@@ -1801,7 +1812,7 @@ def getPreviousRunNo(sub_objfun_outfn,
 
     finished_run_lines = 0
     # make a copy of string
-    previous_cali_mode = str(current_cali_mode)
+    current_cali_mode = str(current_cali_mode)
 
     for ovid, outlet_detail in all_outlet_detail.items():
         if not outlet_detail["outletid"] == "not_grouped_subareas":

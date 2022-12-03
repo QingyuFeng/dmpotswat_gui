@@ -28,7 +28,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='dmpotswat',
+    name='dmpotswat_v1.0',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
