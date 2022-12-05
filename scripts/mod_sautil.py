@@ -292,14 +292,14 @@ def writeSAObjFunFileStatHdrs(all_outlet_detail,
             # Get the corresponding parameter set for the variables of this pair
             var_id = outlet_detail["variableid"]
             # var_name = pair_varid_obs_header[var_id].split("(")[0]
-            # if os.path.isfile(sub_objfun_outfn[opKeys]):
-            #     os.remove(sub_objfun_outfn[opKeys])
+            if os.path.isfile(sub_objfun_outfn[opKeys]):
+                os.remove(sub_objfun_outfn[opKeys])
             with open(sub_objfun_outfn[opKeys], 'a') as obfFile:
                 obfFile.writelines(sub_obj_val_hdr)
 
     # Initialize the basin level parameter file as a record
-    # if os.path.isfile(bsn_obj_fn):
-    #     os.remove(bsn_obj_fn)
+    if os.path.isfile(bsn_obj_fn):
+        os.remove(bsn_obj_fn)
     with open(bsn_obj_fn, 'a') as bsnParmSFile:
         bsnParmSFile.writelines(bsn_obj_val_hdr)
 

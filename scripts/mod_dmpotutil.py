@@ -986,8 +986,9 @@ def calAllStatEachOlt(all_outlet_detail,
             # Calculate R2
             # R2 = sum((obs-obsmean)(sim-simMean)**2)/sum((obs-obsmean)**2)*sum((sim-simMean)**2)
             # R2 ranges from 0 to 1
-            R2 = (sumProdErrObSm ** 2) / (sumSqErrObs * sumSqErrSim)
-            if pandas.isnull(R2):
+            if (sumSqErrObs != 0.0) and (sumSqErrSim != 0):
+                R2 = (sumProdErrObSm ** 2) / (sumSqErrObs * sumSqErrSim)
+            elif (sumSqErrObs == 0.0) and (sumSqErrSim == 0) and pandas.isnull(R2):
                 R2 = -999.0
 
             # Pbias = 100 * sum(obs-sim)/sum(obs) by Danial Moriasi et al., 2007
