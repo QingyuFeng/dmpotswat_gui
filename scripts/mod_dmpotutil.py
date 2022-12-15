@@ -485,7 +485,7 @@ def writeOutFileHeadersParmObjSublvl(cali_mode,
     objective function, and parameter select during the runs
     """
     # path_output = os.path.join(proj_path, fdname_outfiles)
-    dist_obj_val_hdr_sub = "RunNO,Outlet,Var,NSE,R2,MSE,PBIAS,RMSE,TestOF,BestOF,probVal\n"
+    dist_obj_val_hdr_sub = "RunNO,Outlet,Var,NSE,R2,MSE,PBIAS,RMSE,RSR,TestOF,BestOF,probVal\n"
     dist_par_val_hdr_sub = "RunNO,Outlet,Var," + ",".join(parm_sub_level_symbol.to_list()) + "\n"
     lump_obj_val_hdr_basin = "RunNO,Outlet,TestOF,BestOF,probVal\n"
 
@@ -941,6 +941,8 @@ def calAllStatEachOlt(all_outlet_detail,
             obsTSMean = sum(obsTS) / len(obsTS)
             simTS = list(map(float, simTS))
             simTSMean = sum(simTS) / len(simTS)
+            obs_array = numpy.array(obsTS)
+            obs_std = numpy.std(obs_array)
 
             # Sum of errors above
             sumErrObSm = 0.0
@@ -949,11 +951,12 @@ def calAllStatEachOlt(all_outlet_detail,
             sumSqErrSim = 0.0
             sumProdErrObSm = 0.0
 
-            PBIAS = 999.0
-            NSE = 999.0
-            RMSE = 999.0
-            R2 = 999.0
-            MSE = 999.0
+            PBIAS = 100.0
+            NSE = -99.0
+            RMSE = 100.0
+            R2 = 0.01
+            MSE = 100.0
+            RSR = 100.0
 
             for tsidx in range(len(obsTS)):
                 # IPEATPlus Error: error between OBS(i) and SIM(i)
@@ -989,7 +992,7 @@ def calAllStatEachOlt(all_outlet_detail,
             if (sumSqErrObs != 0.0) and (sumSqErrSim != 0):
                 R2 = (sumProdErrObSm ** 2) / (sumSqErrObs * sumSqErrSim)
             elif (sumSqErrObs == 0.0) and (sumSqErrSim == 0) and pandas.isnull(R2):
-                R2 = -999.0
+                R2 = 0.01
 
             # Pbias = 100 * sum(obs-sim)/sum(obs) by Danial Moriasi et al., 2007
             # This is also the equation used in
@@ -997,42 +1000,44 @@ def calAllStatEachOlt(all_outlet_detail,
             # Pbias = 100 * sum(sim-obs)/sum(obs)
             # PBias ranges from 0 to infinity
             if obsTSMean == 0.0:
-                PBIAS = 999.0
+                PBIAS = 100.0
             else:
-                PBIAS = 100 * sumErrObSm / sum(obsTS)
+                PBIAS = 10 * sumErrObSm / sum(obsTS)
                 # Deal with the display issue
-                if PBIAS > 999.0:
-                    PBIAS = 999.0
-                elif (PBIAS < -999.0) or pandas.isnull(PBIAS):
-                    PBIAS = -999.0
+                if PBIAS > 100.0:
+                    PBIAS = 100.0
+                elif (PBIAS < -100.0) or pandas.isnull(PBIAS):
+                    PBIAS = -100.0
 
             # NSE = 1 - sum((obs-sim) ^ 2)/sum((obs-obsmean) ^ 2)
             # NSE ranges from minus infinity to 1
             if sumSqErrObs == 0.0:
-                NSE = -999.0
+                NSE = -99.0
             else:
                 NSE = 1 - (sumSqErrObSm / sumSqErrObs)
                 # minor adjustments for printing outputs
-                if NSE < -999.0 or pandas.isnull(NSE):
-                    NSE = -999.0
+                if NSE <= -99.0 or pandas.isnull(NSE):
+                    NSE = -99.0
 
             # RMSE = sqrt(sum(obs-sim) ^ 2)
+            # RSR = RMSE/obs_std
             if len(obsTS) == 0:
-                RMSE = 999.0
-                MSE = 999.0
+                RMSE = 100.0
+                MSE = 100.0
             else:
                 RMSE = math.sqrt(sumSqErrObSm / len(obsTS))
                 MSE = sumSqErrObSm / len(obsTS)
+                RSR = RMSE/obs_std
+                # Deal with the display issue
+                if RMSE > 100.0 or pandas.isnull(RMSE):
+                    RMSE = 100.0
+
+                if RSR > 100.0 or pandas.isnull(RSR):
+                    RSR = 100.0
 
                 # Deal with the display issue
-                if RMSE > 999.0 or pandas.isnull(RMSE):
-                    RMSE = 999.0
-                elif RMSE < -999.0:
-                    RMSE = -999.0
-
-                # Deal with the display issue
-                if MSE > 999.0 or pandas.isnull(RMSE):
-                    MSE = 999.0
+                if MSE > 100.0 or pandas.isnull(MSE):
+                    MSE = 100.0
 
             # Added by Qingyu Feng Nov 26, 2022
             # The sklearn is not used because r2 calculated by sklearn is
@@ -1046,6 +1051,7 @@ def calAllStatEachOlt(all_outlet_detail,
             outlet_detail["rmse_value"] = RMSE
             outlet_detail["r2_value"] = R2
             outlet_detail["mse_value"] = MSE
+            outlet_detail["rsr_value"] = RSR
 
     return all_outlet_detail
 
@@ -1061,8 +1067,16 @@ def calOltBsnFunValue(all_outlet_detail,
     """
 
     basin_test_objfun_val = 0.0
-
-    # TODO: The weight need to be standardized before using, as for the obfun.
+    sum_oltvar_weights = 0.0
+    # First calculate the objectives for user required outlets.
+    for outlet_key1, outlet_detail1 in all_outlet_detail.items():
+        # In the code, the objective function values for each outlet will
+        # be calculated, and the "Other" group will be dealt as a special calse.
+        # A var to store the value of statistics of all non other sub groups.
+        # In order to calculate the average value of the average OBJ and
+        # provide reference for the other groups.
+        if not outlet_detail1["outletid"] == "not_grouped_subareas":
+            sum_oltvar_weights = sum_oltvar_weights + float(outlet_detail1["varweight"])
 
     # First calculate the objectives for user required outlets.
     for outlet_key, outlet_detail in all_outlet_detail.items():
@@ -1072,8 +1086,9 @@ def calOltBsnFunValue(all_outlet_detail,
         # In order to calculate the average value of the average OBJ and
         # provide reference for the other groups.
         if not outlet_detail["outletid"] == "not_grouped_subareas":
+            # print(float(outlet_detail["varweight"]), float(outlet_detail["varweight"])/sum_oltvar_weights, )
             basin_test_objfun_val = basin_test_objfun_val + float(outlet_detail["test_obj_dist"]
-                                          ) * float(outlet_detail["varweight"])
+                            ) * (float(outlet_detail["varweight"])/sum_oltvar_weights)
 
     return basin_test_objfun_val
 
@@ -1103,41 +1118,173 @@ def calOltObjFunValue(all_outlet_detail):
                             "mse_weight": float(outlet_detail["mse_weight"]),
                             "rmse_weight": float(outlet_detail["rmse_weight"])}
 
-            weight_max = max(all_weights.values())
-            weight_min = min(all_weights.values())
+            # Updated by Qingyu Feng Dec 7:
+            # The old ways of calculating standardized weight was wrong.
+            # I will use the weight/sum as the actual weights.
+            sum_all_weights = 0.0
+            # Only calculate those selected
 
-            std_weights = copy.deepcopy(all_weights)
-            if not weight_min == weight_max:
-                weight_range = weight_max - weight_min
+            # A statistic to mark the necessity to standardize statistics
+            # if only 1 statistic is selected, the original value
+            # will be used as objective function.
+            # If more than 1 statistic is selected, the values will be
+            # standardized.
+            no_statistic = 0
 
-                # X’ = (X - Xmin) / (Xmax - Xmin)
-                for wkey, wvalue in all_weights.items():
-                    # Standardize the weight to get relative weights
-                    new_weight = (all_weights[wkey] - weight_min)/weight_range
-                    std_weights[wkey] = new_weight
+            if outlet_detail["r2_select"] == "1":
+                sum_all_weights = sum_all_weights + all_weights["r2_weight"]
+                no_statistic = no_statistic + 1
+                # obj_outlet + float(outlet_detail["r2_value"]) * std_weights["r2_weight"]
+            if outlet_detail["nse_select"] == "1":
+                sum_all_weights = sum_all_weights + all_weights["nse_weight"]
+                no_statistic = no_statistic + 1
+            if outlet_detail["pbias_select"] == "1":
+                sum_all_weights = sum_all_weights + all_weights["pbias_weight"]
+                no_statistic = no_statistic + 1
+            if outlet_detail["mse_select"] == "1":
+                sum_all_weights = sum_all_weights + all_weights["mse_weight"]
+                no_statistic = no_statistic + 1
+            if outlet_detail["rmse_select"] == "1":
+                sum_all_weights = sum_all_weights + all_weights["rmse_weight"]
+                no_statistic = no_statistic + 1
+            # Updated by Qingyu Feng Dec 7
+
+            # std_weights = copy.deepcopy(all_weights)
+            # if not weight_min == weight_max:
+            #     weight_range = weight_max - weight_min
+            #
+            #     # X’ = (X - Xmin) / (Xmax - Xmin)
+            #     for wkey, wvalue in all_weights.items():
+            #         # Standardize the weight to get relative weights
+            #         new_weight = (all_weights[wkey] - weight_min)/weight_range
+            #         std_weights[wkey] = new_weight
 
             # The NSE values will be 1 - nse
+
+            # R2 range: 0 to 1
+            # PBIAS, MSE, RMSE range: 0 to inf.
+            # NSE Range -inf to 1
+            # In order to reduce the difference in these
+            # statistics, they need to be standardized if more than one
+            # variable is selected.
+
             one_minus_nse = 1.0 - float(outlet_detail["nse_value"])
             one_minus_r2 = 1.0 - float(outlet_detail["r2_value"])
 
             if outlet_detail["r2_select"] == "1":
-                obj_outlet = obj_outlet + one_minus_r2 * std_weights["r2_weight"]
+                if no_statistic == 1:
+                    obj_outlet = one_minus_r2
+                elif no_statistic > 1:
+                    # R2 do not need to be standardized as it ranges from
+                    # 0 to 1
+                    obj_outlet = obj_outlet + one_minus_r2 * (all_weights["r2_weight"]/sum_all_weights)
                     # obj_outlet + float(outlet_detail["r2_value"]) * std_weights["r2_weight"]
-            if outlet_detail["nse_select"] == "1":
-                obj_outlet = obj_outlet + one_minus_nse * std_weights["nse_weight"]
-            if outlet_detail["pbias_select"] == "1":
-                obj_outlet = obj_outlet + abs(float(outlet_detail["pbias_value"])) * std_weights["pbias_weight"]
-            if outlet_detail["mse_select"] == "1":
-                obj_outlet = obj_outlet + abs(float(outlet_detail["mse_value"])) * std_weights["mse_weight"]
-            if outlet_detail["rmse_select"] == "1":
-                obj_outlet = obj_outlet + abs(float(outlet_detail["rmse_value"])) * std_weights["rmse_weight"]
 
-            # print("Outlet ID: {} R2: {}, {}".format(outlet_detail["outletid"], float(outlet_detail["r2_value"]), one_minus_r2))
-            # print("Outlet ID: {} NSE: {}, {}".format(outlet_detail["outletid"], float(outlet_detail["nse_value"]), one_minus_nse))
-            # print("Outlet ID: {} PBIAS: {}".format(outlet_detail["outletid"], float(outlet_detail["pbias_value"])))
-            # print("Outlet ID: {} MSE: {}".format(outlet_detail["outletid"], float(outlet_detail["mse_value"])))
-            # print("Outlet ID: {} RMSE: {}".format(outlet_detail["outletid"], float(outlet_detail["rmse_value"])))
-            # print("Outlet ID: {} obj: {}".format(outlet_detail["outletid"], obj_outlet))
+                    print("Outlet ID: {} R2: {}, {}, {}, {}".format(outlet_detail["outletid"],
+                                                                    float(outlet_detail["r2_value"]),
+                                                                    one_minus_r2,
+                                                                    all_weights["r2_weight"] / sum_all_weights,
+                                                                    all_weights["r2_weight"]))
+
+            if outlet_detail["nse_select"] == "1":
+                if no_statistic == 1:
+                    obj_outlet = one_minus_nse
+                elif no_statistic > 1:
+                    # NSE not need to be standardized as it ranges from
+                    # -inf to 1. We restricted it to be ranged from -99 to 1
+                    # X’ = (X-Xmin) / (Xmax-Xmin)
+                    # nse_standardized = (X - -99) / (1 - -99)
+                    # nse_standardized_minus99_ = 0 / 100 = 0
+                    # nse_standardized_1 = 100 / 100 = 1
+                    # nse increased from -99 to 1,  nse_standardized increased from 0 to 1
+                    # if nse = 0.2: nse_standardized = 0.992
+                    # if nse = 0.3: nse_standardized = 0.993
+                    # To maximize nse, it need to be 1-nse_standardized to minimize it.
+                    nse_sandardized = (float(outlet_detail["nse_value"]) + 99.0) / (1.0 + 99.0)
+                    one_minus_nse_sandardized = 1.0 - nse_sandardized
+                    obj_outlet = obj_outlet + one_minus_nse_sandardized * (
+                            all_weights["nse_weight"]/sum_all_weights)
+
+                    print("Outlet ID: {} NSE: {}, {}, {}, {}".format(outlet_detail["outletid"],
+                                                                     float(outlet_detail["nse_value"]),
+                                                                     nse_sandardized,
+                                                                     all_weights["nse_weight"],
+                                                                     all_weights["nse_weight"] / sum_all_weights))
+
+            if outlet_detail["pbias_select"] == "1":
+                if no_statistic == 1:
+                    obj_outlet = abs(float(outlet_detail["pbias_value"]))
+                elif no_statistic > 1:
+                    # PBias not need to be standardized as it ranges from
+                    # 0 to inf. We restricted it to be ranged from 0 to 100
+                    # pbias_standardized = (X - 0) / (100 - 0)
+                    # pbias_standardized_100 = 100 / 100 = 1
+                    # pbias_standardized_0 = 0 / 100 = 0
+                    # pbias increased from 0 to 100,  pbias_standardized increased from 0 to 1
+                    # if pbias = 2: pbias_standardized = 0.02
+                    # if pbias = 3: pbias_standardized = 0.03
+                    # To minimize pbias, it need to be pbias_standardized to minimize it.
+                    pbias_sandardized = abs(float(outlet_detail["pbias_value"])) / (100.0 - 0.0)
+                    obj_outlet = obj_outlet + pbias_sandardized * (
+                            all_weights["pbias_weight"]/sum_all_weights)
+
+                    print("Outlet ID: {} PBIAS: {}, {}, {}, {}".format(outlet_detail["outletid"],
+                                                           float(outlet_detail["pbias_value"]),
+                                                           pbias_sandardized,
+                                                           all_weights["pbias_weight"],
+                                                           all_weights["pbias_weight"] / sum_all_weights))
+
+            if outlet_detail["mse_select"] == "1":
+                if no_statistic == 1:
+                    obj_outlet = float(outlet_detail["mse_value"])
+                elif no_statistic > 1:
+                    # mse not need to be standardized as it ranges from
+                    # 0 to inf. We restricted it to be ranged from 0 to 100
+                    # mse_standardized = (X - 0) / (100 - 0)
+                    # mse_standardized_100 = 100 / 100 = 1
+                    # mse_standardized_0 = 0 / 100 = 0
+                    # mse increased from 0 to 100, mse_standardized increased from 0 to 1
+                    # if mse = 2: mse_standardized = 0.02
+                    # if mse = 3: mse_standardized = 0.03
+                    # To minimize mse, it need to be mse_standardized to minimize it.
+                    mse_sandardized = float(outlet_detail["mse_value"]) / (100.0 - 0.0)
+                    obj_outlet = obj_outlet + mse_sandardized * (
+                            all_weights["mse_weight"]/sum_all_weights)
+
+                    print("Outlet ID: {} MSE: {}, {}, {}, {}".format(outlet_detail["outletid"],
+                                                         float(outlet_detail["mse_value"]),
+                                                         mse_sandardized,
+                                                         all_weights["mse_weight"],
+                                                         all_weights["mse_weight"] / sum_all_weights))
+
+
+            if outlet_detail["rmse_select"] == "1":
+                if no_statistic == 1:
+                    obj_outlet = float(outlet_detail["rmse_value"])
+                elif no_statistic > 1:
+                    # rmse not need to be standardized as it ranges from
+                    # 0 to inf. We restricted it to be ranged from 0 to 100
+                    # rmse_standardized = (X - 0) / (100 - 0)
+                    # rmse_standardized_100 = 100 / 100 = 1
+                    # rmse_standardized_0 = 0 / 100 = 0
+                    # rmse increased from 0 to 100, rmse_standardized increased from 0 to 1
+                    # if rmse = 2: rmse_standardized = 0.02
+                    # if rmse = 3: rmse_standardized = 0.03
+                    # To minimize rmse, it need to be rmse_standardized to minimize it.
+                    rmse_sandardized = float(outlet_detail["rmse_value"]) / (100.0 - 0.0)
+                    obj_outlet = obj_outlet + rmse_sandardized * (
+                            all_weights["rmse_weight"]/sum_all_weights)
+
+                    print("Outlet ID: {} RMSE: {}, {}, {}, {}".format(outlet_detail["outletid"],
+                                                                  float(outlet_detail["rmse_value"]),
+                                                                  rmse_sandardized,
+                                                                  all_weights["rmse_weight"],
+                                                                  all_weights["rmse_weight"] / sum_all_weights))
+
+            print(sum_all_weights)
+            print("Outlet ID: {} RSR: {}".format(outlet_detail["outletid"],
+                                                 float(outlet_detail["rsr_value"])))
+            print("Outlet ID: {} obj: {}".format(outlet_detail["outletid"], obj_outlet))
 
             outlet_detail["test_obj_dist"] = obj_outlet
 
@@ -1504,7 +1651,43 @@ def updateBestParmSubAndBasin(
 
         if outlet_detail["outletid"] != "not_grouped_subareas":
             # Display the objective function values
-            pip_info_send = """Current and best objective function value for outlet {} var {} are {:.3f}, {:.3f}""".format(
+            pip_info_send = """Current NSE value and weight for outlet {} var {} are {:.3f}""".format(
+                outlet_detail["outletid"],
+                variable_header,
+                float(outlet_detail["nse_value"]))
+            pipe_process_to_gui.send("{}".format(pip_info_send))
+
+            pip_info_send = """Current R2 value and weight for outlet {} var {} are {:.3f}""".format(
+                outlet_detail["outletid"],
+                variable_header,
+                float(outlet_detail["r2_value"]))
+            pipe_process_to_gui.send("{}".format(pip_info_send))
+
+            pip_info_send = """Current PBIAS value and weight for outlet {} var {} are {:.3f}""".format(
+                outlet_detail["outletid"],
+                variable_header,
+                float(outlet_detail["pbias_value"]))
+            pipe_process_to_gui.send("{}".format(pip_info_send))
+
+            pip_info_send = """Current MSE value and weight for outlet {} var {} are {:.3f}""".format(
+                outlet_detail["outletid"],
+                variable_header,
+                float(outlet_detail["mse_value"]))
+            pipe_process_to_gui.send("{}".format(pip_info_send))
+
+            pip_info_send = """Current RMSE value and weight for outlet {} var {} are {:.3f}""".format(
+                outlet_detail["outletid"],
+                variable_header,
+                float(outlet_detail["rmse_value"]))
+            pipe_process_to_gui.send("{}".format(pip_info_send))
+
+            pip_info_send = """Current RSR value and weight for outlet {} var {} are {:.3f}""".format(
+                outlet_detail["outletid"],
+                variable_header,
+                float(outlet_detail["rsr_value"]))
+            pipe_process_to_gui.send("{}".format(pip_info_send))
+
+            pip_info_send = """Current and best objective function value for outlet {} var {} are {:.6f}, {:.6f}""".format(
                 outlet_detail["outletid"],
                 variable_header,
                 float(outlet_detail["test_obj_dist"]),
@@ -1558,13 +1741,14 @@ def updateBestParmSubAndBasin(
             # print("type: test_obj_dist, ", type(outlet_detail["test_obj_dist"]), outlet_detail["test_obj_dist"])
             # print("type: best_obj_dist, ", type(outlet_detail["best_obj_dist"]), outlet_detail["best_obj_dist"])
 
-            lfw_stat_objfun = """{},{},{},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f}\n""".format(
+            lfw_stat_objfun = """{},{},{},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f},{:.5f}\n""".format(
                 runIdx, outlet_detail["outletid"], variable_header,
                 outlet_detail["nse_value"],
                 outlet_detail["r2_value"],
                 outlet_detail["mse_value"],
                 outlet_detail["pbias_value"],
                 outlet_detail["rmse_value"],
+                outlet_detail["rsr_value"],
                 outlet_detail["test_obj_dist"],
                 float(outlet_detail["best_obj_dist"]),
                 probability_value
@@ -1900,6 +2084,7 @@ def getPreviousRunParmsObjValues(
                 outlet_detail["pbias_value"] = previous_obj_dataframe.loc[start_run_no - 1, "PBIAS"]
                 outlet_detail["mse_value"] = previous_obj_dataframe.loc[start_run_no - 1, "MSE"]
                 outlet_detail["rmse_value"] = previous_obj_dataframe.loc[start_run_no - 1, "RMSE"]
+                outlet_detail["rsr_value"] = previous_obj_dataframe.loc[start_run_no - 1, "RSR"]
                 outlet_detail["test_obj_dist"] = previous_obj_dataframe.loc[start_run_no - 1, "TestOF"]
                 outlet_detail["best_obj_dist"] = previous_obj_dataframe.loc[start_run_no - 1, "BestOF"]
                 if cali_mode == "dist":

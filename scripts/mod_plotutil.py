@@ -12,6 +12,8 @@ import pandas
 import numpy
 import matplotlib.pyplot as plt
 plt.switch_backend("agg")
+# setting font sizeto 30
+plt.rcParams.update({'font.size': 20})
 
 ##########################################################################
 def generatingUncertaintyPlots(
@@ -358,8 +360,8 @@ def genePlotTimeSeries(fnp_time_series,
     axes.plot(obs_ts, label="Observed", color='red')
     axes.plot(sim_ts, label="Simulated", color='blue')
 
-    axes.legend(title="Outlet {} {} Run No {} {} {}".format(
-        outletid, variable_header, run_index, plot_purpose, cali_mode_text),
+    axes.legend(title="Outlet {} {} Run {} {}".format(
+        outletid, variable_header, plot_purpose, cali_mode_text),
                 loc="upper right")
     # axes.set_title("Outlet {} {} Run No {} {} {}".format(
     #     outletid, variable_header, run_index, plot_purpose, cali_mode_text))

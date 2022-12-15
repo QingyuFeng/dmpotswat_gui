@@ -427,110 +427,114 @@ class mainWindow(tkinter.Tk):
             # Assign the project to global variables
             proj_name = os.path.basename(user_proj_path)
             path_proj_file = os.path.join(user_proj_path, "{}.dmp".format(proj_name))
-            
+
             # Check the project name to be longer than 1 charactor:
             if len(proj_name) <= 1:
                 showinfo("Warning",
                          "Please choose a longer name than 1 charactor")
                 return
-            elif os.path.isfile(path_proj_file):
+
+            if os.path.isfile(path_proj_file):
                 user_replace_existing = tkinter.messagebox.askyesno("Warning",
-                                                            "Do you want to save current project and continue with a new project?")
+                        "Do you want to delete the current project and continue with a new project?")
 
                 if user_replace_existing == False:
                     create_new = False
                     return
-            else:
-                # Create project folder structure
-                path_txtinout = os.path.join(user_proj_path, "txtinout")
-                if not os.path.isdir(path_txtinout):
-                    os.mkdir(path_txtinout)
 
-                path_reach = os.path.join(user_proj_path, "reachshapefile")
-                if not os.path.isdir(path_reach):
-                    os.mkdir(path_reach)
+            # Create project folder structure
+            path_txtinout = os.path.join(user_proj_path, "txtinout")
+            if not os.path.isdir(path_txtinout):
+                os.mkdir(path_txtinout)
 
-                path_observed = os.path.join(user_proj_path, "observeddata")
-                if not os.path.isdir(path_observed):
-                    os.mkdir(path_observed)
+            path_reach = os.path.join(user_proj_path, "reachshapefile")
+            if not os.path.isdir(path_reach):
+                os.mkdir(path_reach)
 
-                # Folder for running the model
-                path_workingdir = os.path.join(user_proj_path, "workingdir")
-                if not os.path.isdir(path_workingdir):
-                    os.mkdir(path_workingdir)
+            path_observed = os.path.join(user_proj_path, "observeddata")
+            if not os.path.isdir(path_observed):
+                os.mkdir(path_observed)
 
-                # Folder for storing output files the model
-                path_dds_output = os.path.join(user_proj_path, "outfiles_dds")
-                if not os.path.isdir(path_dds_output):
-                    os.mkdir(path_dds_output)
+            # Folder for running the model
+            path_workingdir = os.path.join(user_proj_path, "workingdir")
+            if not os.path.isdir(path_workingdir):
+                os.mkdir(path_workingdir)
 
-                # Folder for storing output files the model
-                path_output_sa = os.path.join(user_proj_path, "outfiles_sa")
-                if not os.path.isdir(path_output_sa):
-                    os.mkdir(path_output_sa)
+            # Folder for storing output files the model
+            path_dds_output = os.path.join(user_proj_path, "outfiles_dds")
+            if not os.path.isdir(path_dds_output):
+                os.mkdir(path_dds_output)
 
-                # # Folder for storing output files the model
-                # path_output_plots = os.path.join(user_proj_path, "outfiles_ddsplots")
-                # if not os.path.isdir(path_output_plots):
-                #     os.mkdir(path_output_plots)
+            # Folder for storing output files the model
+            path_output_sa = os.path.join(user_proj_path, "outfiles_sa")
+            if not os.path.isdir(path_output_sa):
+                os.mkdir(path_output_sa)
 
-                # Update the information in the project.json files
-                # Load the project file into json
-                # Reset the project data to the default status
-                self.proj_data = copy.deepcopy(default_dmpotconf)
+            # # Folder for storing output files the model
+            # path_output_plots = os.path.join(user_proj_path, "outfiles_ddsplots")
+            # if not os.path.isdir(path_output_plots):
+            #     os.mkdir(path_output_plots)
 
-                # Update project specific information
-                self.proj_data["gui_status"]["proj_path"] = user_proj_path
-                self.proj_data["gui_status"]["newproject"] = "true"
-                self.proj_data["gui_status"]["projectname"] = proj_name
+            # Update the information in the project.json files
+            # Load the project file into json
+            # Reset the project data to the default status
+            self.proj_data = copy.deepcopy(default_dmpotconf)
 
-                # Define gui status
-                # Enable the check box for ongoing steps
-                self.ckbtn_copy_txtinout.config(state="active")
-                self.ckbtn_copy_reachshp.config(state="active")
+            # Update project specific information
+            self.proj_data["gui_status"]["proj_path"] = user_proj_path
+            self.proj_data["gui_status"]["newproject"] = "true"
+            self.proj_data["gui_status"]["projectname"] = proj_name
 
-                # Enable other tabs
-                # self.main_notebook.tab(tab_id=1, state="normal")
+            # Define gui status
+            # Enable the check box for ongoing steps
+            self.ckbtn_copy_txtinout.config(state="active")
+            self.ckbtn_copy_reachshp.config(state="active")
 
-                # Update the json file information
-                # path_proj_file = os.path.join(user_proj_path, "{}.dmp".format(proj_name))
-                self.proj_data["gui_status"]["proj_file"] = path_proj_file
-                # Save it to the project file
-                write_pickle_file(self.proj_data, path_proj_file)
+            # Enable other tabs
+            # self.main_notebook.tab(tab_id=1, state="normal")
 
-                # Reset all input values to update the appearance of the interface
-                self.input_checked_txtinout.set("false")
-                self.input_checked_reach.set("false")
+            # Update the json file information
+            # path_proj_file = os.path.join(user_proj_path, "{}.dmp".format(proj_name))
+            self.proj_data["gui_status"]["proj_file"] = path_proj_file
+            if os.path.isfile(path_proj_file):
+                os.remove(path_proj_file)
 
-                # Swat Model Tab specifications
-                self.input_copy_observed.set("false")
+            # Save it to the project file
+            write_pickle_file(self.proj_data, path_proj_file)
 
-                # Evaluate default model specifications
+            # Reset all input values to update the appearance of the interface
+            self.input_checked_txtinout.set("false")
+            self.input_checked_reach.set("false")
 
-                # Parameter selection specifications
+            # Swat Model Tab specifications
+            self.input_copy_observed.set("false")
 
-                # Sensitivity Analysis
+            # Evaluate default model specifications
 
-                # Calibration specifications
-                self.input_cali_mode.set("dist")
-                self.input_dds_initval.set("random")
-                self.input_dds_pertub.set("0.2")
-                self.input_dds_restart.set("restart")
-                self.input_dds_totalno.set("100")
+            # Parameter selection specifications
 
-                # Select best run specifications
+            # Sensitivity Analysis
 
-                # Plotting specifications
+            # Calibration specifications
+            self.input_cali_mode.set("dist")
+            self.input_dds_initval.set("random")
+            self.input_dds_pertub.set("0.2")
+            self.input_dds_restart.set("restart")
+            self.input_dds_totalno.set("100")
 
-                # Uncertainty specifications
+            # Select best run specifications
 
-                # Display the path in the gui
-                self.textbox_setup_confirm.insert("end",
-                                                  """{}--New project setup successfully!\n""".format(
-                                                      current_time()))
-                self.textbox_setup_confirm.insert("end",
-                                                  """{}--Project folder: {}\n""".format(
-                                                      current_time(), user_proj_path))
+            # Plotting specifications
+
+            # Uncertainty specifications
+
+            # Display the path in the gui
+            self.textbox_setup_confirm.insert("end",
+                                              """{}--New project setup successfully!\n""".format(
+                                                  current_time()))
+            self.textbox_setup_confirm.insert("end",
+                                              """{}--Project folder: {}\n""".format(
+                                                  current_time(), user_proj_path))
 
     def save_proj(self):
         """
@@ -573,7 +577,7 @@ class mainWindow(tkinter.Tk):
         self.textbox_setup_confirm.see("end")
 
         # Set the title to include the user project name
-        self.title('dmpotswat {}'.format(
+        self.title('dmpotswat {}.dmp'.format(
             self.proj_data["gui_status"]["projectname"]))
 
         # Enable the swat model tab
@@ -617,112 +621,123 @@ class mainWindow(tkinter.Tk):
                 initialdir='C:',
                 filetypes=filetypes)
 
-            # Open the data from pickle
-            self.proj_data = read_pickle_file(path_proj_file)
-            self.proj_data["gui_status"]["proj_path"] = pathlib.Path(path_proj_file).parent.absolute()
-            self.proj_data["gui_status"]["proj_file"] = path_proj_file
-            # Reset all input values to update the appearance of the interface
-            # Update gui status based on the project progress
-            if self.proj_data["gui_status"]["newproject"] == "true":
-                self.ckbtn_copy_txtinout.config(state="active")
-                self.ckbtn_copy_reachshp.config(state="active")
+            if not os.path.isfile(path_proj_file):
+                showinfo("Warning", "Please select a valid project file with suffix of .dmp")
+                return
+            else:
 
-            if self.proj_data["gui_status"]["checktxtinout"] == "true":
-                self.input_checked_txtinout.set("true")
-                # Update the variable values
-                self.input_start_date.set(self.proj_data["cali_options"]["simstartdate"])
-                self.input_end_date.set(self.proj_data["cali_options"]["simenddate"])
-                self.input_warmup.set(str(self.proj_data["cali_options"]["warmupyrs"]))
-                self.input_print_code.set(self.proj_data["cali_options"]["iprint"])
+                # Open the data from pickle
+                self.proj_data = read_pickle_file(path_proj_file)
+                self.proj_data["gui_status"]["proj_path"] = pathlib.Path(path_proj_file).parent.absolute()
+                self.proj_data["gui_status"]["proj_file"] = path_proj_file
+                # Reset all input values to update the appearance of the interface
+                # Update gui status based on the project progress
+                if self.proj_data["gui_status"]["newproject"] == "true":
+                    self.ckbtn_copy_txtinout.config(state="active")
+                    self.ckbtn_copy_reachshp.config(state="active")
 
-            if self.proj_data["gui_status"]["checkreach"] == "true":
-                self.input_checked_reach.set("true")
-                path_reachshp = os.path.join(self.proj_data["gui_status"]["proj_path"],
-                                             "reachshapefile",
-                                             "reach.shp")
-                # Get the outlet number list from the shapefile
-                self.proj_data["cali_options"]["all_outlets_reach"] = get_outlet_in_reach(path_reachshp)
+                if self.proj_data["gui_status"]["checktxtinout"] == "true":
+                    self.input_checked_txtinout.set("true")
+                    # Update the variable values
+                    self.input_start_date.set(self.proj_data["cali_options"]["simstartdate"])
+                    self.input_end_date.set(self.proj_data["cali_options"]["simenddate"])
+                    self.input_warmup.set(str(self.proj_data["cali_options"]["warmupyrs"]))
+                    self.input_print_code.set(self.proj_data["cali_options"]["iprint"])
 
-                # Enable the swat model tab
-                self.main_notebook.tab(tab_id=1, state="normal")
+                if self.proj_data["gui_status"]["checkreach"] == "true":
+                    self.input_checked_reach.set("true")
+                    path_reachshp = os.path.join(self.proj_data["gui_status"]["proj_path"],
+                                                 "reachshapefile",
+                                                 "reach.shp")
+                    # Get the outlet number list from the shapefile
+                    self.proj_data["cali_options"]["all_outlets_reach"] = get_outlet_in_reach(path_reachshp)
 
-            if self.proj_data["gui_status"]["copy_observed_data"] == "true":
-                self.input_copy_observed.set("true")
-
-            if self.proj_data["gui_status"]["definebtnclick"] == "true":
-                # Display the table
-                self.input_outlet_var_no.set(self.proj_data["cali_options"]["total_outlet_vars"])
-                # Initialize gui values for outlet details.
-                self.define_outlet_details()
-                for ovid in range(int(self.proj_data["cali_options"]["total_outlet_vars"])):
-                    ovkey = "{}".format(ovid)
-                    for dtlkey in self.outlet_var_detail[ovkey].keys():
-                        self.outlet_var_detail[ovkey][dtlkey].set(
-                            self.proj_data["cali_options"]["outlet_details"][ovkey][dtlkey])
-
-            if self.proj_data["gui_status"]["setParm"] == "true":
-                # Initialize the project parameter settings
-                for oneparm in self.input_parms.keys():
-                    for colid in self.input_parms[oneparm].keys():
-                        self.input_parms[oneparm][colid].set(self.proj_data["parms"][oneparm][colid])
-
-            # Evaluate default model specifications
-            if self.proj_data["gui_status"]["set_swat_model"] == "true":
-                # Enable the evaluate default model/parameter
-                # selection/sensitivityanalysis/calibration tab
-                self.main_notebook.tab(tab_id=2, state="normal")
-                self.main_notebook.tab(tab_id=3, state="normal")
-                self.main_notebook.tab(tab_id=4, state="normal")
-                self.main_notebook.tab(tab_id=5, state="normal")
-                self.main_notebook.tab(tab_id=6, state="normal")
-                self.main_notebook.tab(tab_id=7, state="normal")
-                self.main_notebook.tab(tab_id=8, state="normal")
-
-            if self.proj_data["gui_status"]["copy_observed_data"] == "true":
-                self.button_run_dftmodel.configure(state="normal")
-
-            if self.proj_data["gui_status"]["setSA"] == "true":
-                # Initialize the project parameter settings
-                self.input_sa_method.set(self.proj_data["sa_method_parm"]["method"])
-                if self.proj_data["sa_method_parm"]["method"] == "sobol":
-                    self.input_sobol_n.set(self.proj_data["sa_method_parm"]["sobol_n"])
-                    self.entry_sobol_n.config(state="normal")
-                    self.entry_morris_n.config(state="disable")
-                    self.entry_fast_n.config(state="disable")
-                elif self.proj_data["sa_method_parm"]["method"] == "morris":
-                    self.input_morris_n.set(self.proj_data["sa_method_parm"]["morris_n"])
-                    self.entry_sobol_n.config(state="disable")
-                    self.entry_morris_n.config(state="normal")
-                    self.entry_fast_n.config(state="disable")
-
-                elif self.proj_data["sa_method_parm"]["method"] == "fast":
-                    self.input_fast_n.set(self.proj_data["sa_method_parm"]["fast_n"])
-                    self.entry_sobol_n.config(state="disable")
-                    self.entry_morris_n.config(state="disable")
-                    self.entry_fast_n.config(state="normal")
-                self.button_run_sa.configure(state="normal")
-
-            if self.proj_data["gui_status"]["setCali"] == "true":
-                self.input_cali_mode.set(self.proj_data["cali_options"]["cali_mode"])
-                self.input_dds_pertub.set(self.proj_data["cali_dds"]["pertubfactor"])
-                self.input_dds_totalno.set(self.proj_data["cali_dds"]["totalsimno"])
-                self.input_dds_initval.set(self.proj_data["cali_dds"]["initparaidx"])
-                self.input_dds_restart.set(self.proj_data["cali_dds"]["restartmech"])
+                    # Enable the swat model tab
+                    self.main_notebook.tab(tab_id=1, state="normal")
 
                 if self.proj_data["gui_status"]["copy_observed_data"] == "true":
-                    self.button_run_cali.configure(state="normal")
+                    self.input_copy_observed.set("true")
 
-            self.proj_data["gui_status"]["loadporject"] = "true"
+                if self.proj_data["gui_status"]["definebtnclick"] == "true":
+                    # Display the table
+                    self.input_outlet_var_no.set(self.proj_data["cali_options"]["total_outlet_vars"])
+                    # Initialize gui values for outlet details.
+                    self.define_outlet_details()
+                    for ovid in range(int(self.proj_data["cali_options"]["total_outlet_vars"])):
+                        ovkey = "{}".format(ovid)
+                        for dtlkey in self.outlet_var_detail[ovkey].keys():
+                            self.outlet_var_detail[ovkey][dtlkey].set(
+                                self.proj_data["cali_options"]["outlet_details"][ovkey][dtlkey])
 
-            # Display the path in the gui
-            self.textbox_setup_confirm.insert("end",
-                                              """{}--Existing project loaded successfully!\n""".format(
-                                                  current_time(),
-                                                  self.proj_data["gui_status"]["proj_file"]))
-            self.textbox_setup_confirm.insert("end",
-                                              """{}--Project folder: {}\n""".format(
-                                                  current_time(),
-                                                  self.proj_data["gui_status"]["proj_path"]))
+                if self.proj_data["gui_status"]["setParm"] == "true":
+                    # Initialize the project parameter settings
+                    for oneparm in self.input_parms.keys():
+                        for colid in self.input_parms[oneparm].keys():
+                            self.input_parms[oneparm][colid].set(self.proj_data["parms"][oneparm][colid])
+
+                # Evaluate default model specifications
+                if self.proj_data["gui_status"]["set_swat_model"] == "true":
+                    # Enable the evaluate default model/parameter
+                    # selection/sensitivityanalysis/calibration tab
+                    self.main_notebook.tab(tab_id=2, state="normal")
+                    self.main_notebook.tab(tab_id=3, state="normal")
+                    self.main_notebook.tab(tab_id=4, state="normal")
+                    self.main_notebook.tab(tab_id=5, state="normal")
+                    self.main_notebook.tab(tab_id=6, state="normal")
+                    self.main_notebook.tab(tab_id=7, state="normal")
+                    self.main_notebook.tab(tab_id=8, state="normal")
+
+                if self.proj_data["gui_status"]["copy_observed_data"] == "true":
+                    self.button_run_dftmodel.configure(state="normal")
+
+                if self.proj_data["gui_status"]["setSA"] == "true":
+                    # Initialize the project parameter settings
+                    self.input_sa_method.set(self.proj_data["sa_method_parm"]["method"])
+                    if self.proj_data["sa_method_parm"]["method"] == "sobol":
+                        self.input_sobol_n.set(self.proj_data["sa_method_parm"]["sobol_n"])
+                        self.entry_sobol_n.config(state="normal")
+                        self.entry_morris_n.config(state="disable")
+                        self.entry_fast_n.config(state="disable")
+                    elif self.proj_data["sa_method_parm"]["method"] == "morris":
+                        self.input_morris_n.set(self.proj_data["sa_method_parm"]["morris_n"])
+                        self.entry_sobol_n.config(state="disable")
+                        self.entry_morris_n.config(state="normal")
+                        self.entry_fast_n.config(state="disable")
+
+                    elif self.proj_data["sa_method_parm"]["method"] == "fast":
+                        self.input_fast_n.set(self.proj_data["sa_method_parm"]["fast_n"])
+                        self.entry_sobol_n.config(state="disable")
+                        self.entry_morris_n.config(state="disable")
+                        self.entry_fast_n.config(state="normal")
+                    self.button_run_sa.configure(state="normal")
+
+                if self.proj_data["gui_status"]["setCali"] == "true":
+                    self.input_cali_mode.set(self.proj_data["cali_options"]["cali_mode"])
+                    self.input_dds_pertub.set(self.proj_data["cali_dds"]["pertubfactor"])
+                    self.input_dds_totalno.set(self.proj_data["cali_dds"]["totalsimno"])
+                    self.input_dds_initval.set(self.proj_data["cali_dds"]["initparaidx"])
+                    self.input_dds_restart.set(self.proj_data["cali_dds"]["restartmech"])
+
+                    if self.proj_data["gui_status"]["copy_observed_data"] == "true":
+                        self.button_run_cali.configure(state="normal")
+
+                self.proj_data["gui_status"]["loadporject"] = "true"
+
+                # Display the path in the gui
+                self.textbox_setup_confirm.insert("end",
+                                                  """{}--Existing project loaded successfully!\n""".format(
+                                                      current_time(),
+                                                      self.proj_data["gui_status"]["proj_file"]))
+                self.textbox_setup_confirm.insert("end",
+                                                  """{}--Project folder: {}\n""".format(
+                                                      current_time(),
+                                                      self.proj_data["gui_status"]["proj_path"]))
+
+                # Set the title to include the user project name
+                self.proj_data["gui_status"]["projectname"] = os.path.split(path_proj_file)[-1]
+                self.title('dmpotswat {}'.format(
+                    self.proj_data["gui_status"]["projectname"]))
+
 
             # Select best run specifications
 

@@ -101,28 +101,32 @@ def runDefaultSWAT(cali_options,
 
     # Display the output in gui
     for outlet_key, outlet_detail in all_outlet_detail.items():
-        pip_info_send = """Output: Objective function for outlet no {} is {:.2f}!""".format(
+        pip_info_send = """Output: Objective function for outlet no {} is {:.4f}!""".format(
             outlet_detail["outletid"], outlet_detail["test_obj_dist"]
         )
         pipe_process_to_gui.send("{}".format(pip_info_send))
-        pip_info_send = """Output: R2 for outlet no {} is {:.2f}!""".format(
+        pip_info_send = """Output: R2 for outlet no {} is {:.4f}!""".format(
             outlet_detail["outletid"], outlet_detail["r2_value"])
 
         pipe_process_to_gui.send("{}".format(pip_info_send))
-        pip_info_send = """Output: NSE for outlet no {} is {:.2f}!""".format(
+        pip_info_send = """Output: NSE for outlet no {} is {:.4f}!""".format(
             outlet_detail["outletid"], outlet_detail["nse_value"])
         pipe_process_to_gui.send("{}".format(pip_info_send))
 
-        pip_info_send = """Output: Pbias for outlet no {} is {:.2f}!""".format(
+        pip_info_send = """Output: Pbias for outlet no {} is {:.4f}!""".format(
             outlet_detail["outletid"], outlet_detail["pbias_value"])
         pipe_process_to_gui.send("{}".format(pip_info_send))
 
-        pip_info_send = """Output: RMSE for outlet no {} is {:.2f}!""".format(
+        pip_info_send = """Output: MSE for outlet no {} is {:.4f}!""".format(
+            outlet_detail["outletid"], outlet_detail["mse_value"])
+        pipe_process_to_gui.send("{}".format(pip_info_send))
+
+        pip_info_send = """Output: RMSE for outlet no {} is {:.4f}!""".format(
             outlet_detail["outletid"], outlet_detail["rmse_value"])
         pipe_process_to_gui.send("{}".format(pip_info_send))
 
-        pip_info_send = """Output: MSE for outlet no {} is {:.2f}!""".format(
-            outlet_detail["outletid"], outlet_detail["mse_value"])
+        pip_info_send = """Output: RSR for outlet no {} is {:.4f}!""".format(
+            outlet_detail["outletid"], outlet_detail["rsr_value"])
         pipe_process_to_gui.send("{}".format(pip_info_send))
 
         pip_info_send = """Confirmation: finished evaluating default swat model!"""
@@ -1297,7 +1301,7 @@ def runCalibrationPlots(pipe_process_to_gui,
                                 cali_mode,
                                 outlet_detail["plot_runno"],
                                 GlobalVars.pair_varid_obs_header,
-                                "DDS Run {}".format(int(outlet_detail["plot_runno"])),
+                                "{}".format(int(outlet_detail["plot_runno"])),
                                 "outfiles_dds",
                                 pipe_process_to_gui)
 
