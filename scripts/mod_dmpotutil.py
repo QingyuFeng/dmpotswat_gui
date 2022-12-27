@@ -809,7 +809,7 @@ def getRch2DF(fnRch, iPrintForCio, totalRchNum):
     # Corresponding heads used in the observed data
     # facilitating the extraction of output variables.
     hedr = ["REACH", "RCH", "GIS", "MON", "AREAkm2",
-            "sf(m3/s)", " sed(t/ha)", "orgn(kg/ha)",
+            "sf(m3/s)", "sed(t/ha)", "orgn(kg/ha)",
             "orgp(kg/ha)", "no3n(kg/ha)", "nh4n(kg/ha)",
             "no2n(kg/ha)", "minp(kg/ha)", "solpst(mg/ha)",
             "sorpst(mg/ha)"]

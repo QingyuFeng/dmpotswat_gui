@@ -25,6 +25,14 @@ GlobalVars = global_vars()
 # Pipe must be global
 pipe_process_to_gui = multiprocessing.Pipe()
 
+# Setting up environment and import the GDAL lib
+path_main_root = os.path.dirname(__file__)
+os.environ['PROJ_LIB'] = os.path.join(
+    path_main_root,
+    "pyenv_dmpotswatgui\Lib\site-packages\pyproj\proj_dir\share\proj")
+os.environ['GDAL_DATA'] = os.path.join(
+    path_main_root,
+    "pyenv_dmpotswatgui\Lib\site-packages\fiona\gdal_data")
 
 class mainWindow(tkinter.Tk):
 
@@ -1959,7 +1967,7 @@ class mainWindow(tkinter.Tk):
             self.entry_sobol_n.configure(state="disable")
             self.entry_morris_n.configure(state="normal")
             self.entry_fast_n.configure(state="disable")
-        if self.input_sa_method.get() == "fast":
+        elif self.input_sa_method.get() == "fast":
             self.entry_sobol_n.configure(state="disable")
             self.entry_morris_n.configure(state="disable")
             self.entry_fast_n.configure(state="normal")
@@ -2295,23 +2303,63 @@ class mainWindow(tkinter.Tk):
                 elif self.proj_data["cali_options"]["iprint"] == "annual":
                     freq = "annual"
 
-                for oltid in outlet_nos:
-                    fn_observed = "obs_{}{}.prn".format(freq, oltid)
+                # print(self.proj_data["cali_options"]["outlet_details"])
+                checked_outlet_no = []
+                for odkey, odvalue in self.proj_data["cali_options"]["outlet_details"].items():
+                    ck_outlet_id = odvalue["outletid"]
+                    ck_variableid = odvalue["variableid"]
+                    fn_observed = "obs_{}{}.prn".format(freq, ck_outlet_id)
                     path_observed = os.path.join(self.proj_data["gui_status"]["proj_path"],
-                                                 "observeddata",
-                                                 fn_observed)
+                                             "observeddata",
+                                             fn_observed)
+
                     if not os.path.isfile(path_observed):
                         self.input_copy_observed.set("false")
                         showinfo("Warning",
                                  "Observed data for outlet {} does not exist".format(path_observed))
                         return
-
                     else:
-                        showinfo("Confirmation",
-                                 """{}--File {} exists in the \"observeddata\" folder !\n""".format(
-                                     current_time(), fn_observed))
+                        # Read the observed data and check the length of observed data
+                        dataframe_observed = pandas.read_table(
+                            path_observed,
+                            names=GlobalVars.obs_data_header,
+                            skiprows=1)
+                        # Get the interested columns from the whole data frame
+                        var_col_names = GlobalVars.pair_varid_obs_header[ck_variableid]
+                        obs_list = dataframe_observed[var_col_names].to_list()
+                        obs_no_missing = []
 
-                # TODO: Add the format check and determine whether the observed data contain proper variables
+                        # Get the no missing list
+                        for obsidx in range(len(obs_list)):
+                            obs_val = obs_list[obsidx]
+                            if not int(obs_val) == -99:
+                                obs_no_missing.append(obs_val)
+                        if len(obs_no_missing) < len(obs_list)/2:
+                            self.input_copy_observed.set("false")
+                            showinfo("Warning",
+                                     "Variable values for variable {} in {} has over 50% missing values. Please double check!".format(
+                                         var_col_names, fn_observed))
+                            return
+                        else:
+                            showinfo("Confirmation",
+                                     """{}--File {} exists in the \"observeddata\" folder !\n""".format(
+                                         current_time(), fn_observed))
+
+                # for oltid in outlet_nos:
+                #     fn_observed = "obs_{}{}.prn".format(freq, oltid)
+                #     path_observed = os.path.join(self.proj_data["gui_status"]["proj_path"],
+                #                                  "observeddata",
+                #                                  fn_observed)
+                #     if not os.path.isfile(path_observed):
+                #         self.input_copy_observed.set("false")
+                #         showinfo("Warning",
+                #                  "Observed data for outlet {} does not exist".format(path_observed))
+                #         return
+                #     else:
+                #         showinfo("Confirmation",
+                #                  """{}--File {} exists in the \"observeddata\" folder !\n""".format(
+                #                      current_time(), fn_observed))
+
                 self.proj_data["gui_status"]["copy_observed_data"] = "true"
                 # enable the running default model button
                 self.button_run_dftmodel.configure(state="normal")
