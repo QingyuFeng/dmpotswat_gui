@@ -1,0 +1,5 @@
+1. with xxxx.spec:
+pyinstaller main.spec
+
+2. with xxxx.py
+pyinstaller --onefile main.py --name "dmpotswat" --add-data "scripts;scripts" --icon "DmpotswaticoCreation.ico" --clean --noconsole
